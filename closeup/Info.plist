@@ -9,11 +9,11 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>TODO</string>
+				<string>com.googleusercontent.apps.719324787830-2r844vnnea1t0pegpkdr82bqlped6gvs</string>
 			</array>
 		</dict>
 	</array>
 	<key>GIDClientID</key>
-	<string>TODO</string>
+	<string>719324787830-2r844vnnea1t0pegpkdr82bqlped6gvs.apps.googleusercontent.com</string>
 </dict>
 </plist>

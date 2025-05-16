@@ -7,6 +7,7 @@
 
 import Foundation
 import Supabase
+import GoogleSignIn
 
 struct AppUser {
     let uid: String
