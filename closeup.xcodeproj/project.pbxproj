@@ -6,6 +6,17 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9A555E9D2DCEC1FF00A0FFB9 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555E9C2DCEC1FF00A0FFB9 /* Auth */; };
+		9A555E9F2DCEC1FF00A0FFB9 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555E9E2DCEC1FF00A0FFB9 /* Functions */; };
+		9A555EA12DCEC1FF00A0FFB9 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555EA02DCEC1FF00A0FFB9 /* PostgREST */; };
+		9A555EA32DCEC1FF00A0FFB9 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555EA22DCEC1FF00A0FFB9 /* Realtime */; };
+		9A555EA52DCEC1FF00A0FFB9 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555EA42DCEC1FF00A0FFB9 /* Storage */; };
+		9A555EB42DCEC88000A0FFB9 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555EB32DCEC88000A0FFB9 /* GoogleSignIn */; };
+		9A555EB62DCEC88000A0FFB9 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555EB52DCEC88000A0FFB9 /* GoogleSignInSwift */; };
+		9A555ED12DCEF24600A0FFB9 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 9A555ED02DCEF24600A0FFB9 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9A555E7F2DCEC05800A0FFB9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +40,22 @@
 		9A555E882DCEC05800A0FFB9 /* closeupUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = closeupUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9A555EB82DCECBA600A0FFB9 /* Exceptions for "closeup" folder in "closeup" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9A555E702DCEC05800A0FFB9 /* closeup */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9A555E732DCEC05800A0FFB9 /* closeup */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9A555EB82DCECBA600A0FFB9 /* Exceptions for "closeup" folder in "closeup" target */,
+			);
 			path = closeup;
 			sourceTree = "<group>";
 		};
@@ -52,6 +76,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A555EA12DCEC1FF00A0FFB9 /* PostgREST in Frameworks */,
+				9A555E9F2DCEC1FF00A0FFB9 /* Functions in Frameworks */,
+				9A555EB62DCEC88000A0FFB9 /* GoogleSignInSwift in Frameworks */,
+				9A555E9D2DCEC1FF00A0FFB9 /* Auth in Frameworks */,
+				9A555ED12DCEF24600A0FFB9 /* Supabase in Frameworks */,
+				9A555EA52DCEC1FF00A0FFB9 /* Storage in Frameworks */,
+				9A555EA32DCEC1FF00A0FFB9 /* Realtime in Frameworks */,
+				9A555EB42DCEC88000A0FFB9 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +110,7 @@
 				9A555E732DCEC05800A0FFB9 /* closeup */,
 				9A555E812DCEC05800A0FFB9 /* closeupTests */,
 				9A555E8B2DCEC05800A0FFB9 /* closeupUITests */,
+				9A555ECF2DCEF24600A0FFB9 /* Frameworks */,
 				9A555E722DCEC05800A0FFB9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +123,13 @@
 				9A555E882DCEC05800A0FFB9 /* closeupUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9A555ECF2DCEF24600A0FFB9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +152,14 @@
 			);
 			name = closeup;
 			packageProductDependencies = (
+				9A555E9C2DCEC1FF00A0FFB9 /* Auth */,
+				9A555E9E2DCEC1FF00A0FFB9 /* Functions */,
+				9A555EA02DCEC1FF00A0FFB9 /* PostgREST */,
+				9A555EA22DCEC1FF00A0FFB9 /* Realtime */,
+				9A555EA42DCEC1FF00A0FFB9 /* Storage */,
+				9A555EB32DCEC88000A0FFB9 /* GoogleSignIn */,
+				9A555EB52DCEC88000A0FFB9 /* GoogleSignInSwift */,
+				9A555ED02DCEF24600A0FFB9 /* Supabase */,
 			);
 			productName = closeup;
 			productReference = 9A555E712DCEC05800A0FFB9 /* closeup.app */;
@@ -195,6 +243,10 @@
 			);
 			mainGroup = 9A555E682DCEC05800A0FFB9;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				9A555EB22DCEC88000A0FFB9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9A555E722DCEC05800A0FFB9 /* Products */;
 			projectDirPath = "";
@@ -400,6 +452,7 @@
 				DEVELOPMENT_TEAM = 7Y8659YP78;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = closeup/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,6 +481,7 @@
 				DEVELOPMENT_TEAM = 7Y8659YP78;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = closeup/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -558,6 +612,68 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+		9A555EB22DCEC88000A0FFB9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9A555E9C2DCEC1FF00A0FFB9 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		9A555E9E2DCEC1FF00A0FFB9 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		9A555EA02DCEC1FF00A0FFB9 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		9A555EA22DCEC1FF00A0FFB9 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		9A555EA42DCEC1FF00A0FFB9 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		9A555EB32DCEC88000A0FFB9 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555EB22DCEC88000A0FFB9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		9A555EB52DCEC88000A0FFB9 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555EB22DCEC88000A0FFB9 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		9A555ED02DCEF24600A0FFB9 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A555E9B2DCEC1FF00A0FFB9 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9A555E692DCEC05800A0FFB9 /* Project object */;
 }
