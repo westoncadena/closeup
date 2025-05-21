@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Guidance for maintaining and extending the database schema for this project.
+globs: backend/db/**/*.sql
+alwaysApply: true
+---
+
+# Database Schema Guidance
+
+- Posts table must include: id, user_id, prompt_id, content, media_url, visibility, created_at, expires_at.
+- Use ENUM for `visibility` to differentiate between "Everyone" and "Inner Circle".
+- Connections table should model user relationships and audience types (e.g., edge with type: 'inner_circle').
+- Interactions (comments, reactions) should be stored in Firestore subcollections for scalability.
+- All media URLs must point to object storage (Firebase Storage).
+- When extending the schema, document all changes and update ER diagrams.
+- Enforce row-level security (RLS) on all user data.

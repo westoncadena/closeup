@@ -20,14 +20,32 @@ class AuthManager {
     private init() {}
     
     let client = SupabaseClient(
-        supabaseURL: URL(string: "https://frjkiymssmpphkktvmsl.supabase.co")!,
-        supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyamtpeW1zc21wcGhra3R2bXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDQyODAsImV4cCI6MjA2MTUyMDI4MH0.uu681e7ZdLMimZiae00-wcBL8wE04PqA8xoneXv3Pjc"
+        supabaseURL: URL(string: Config.supabaseUrl)!,
+        supabaseKey: Config.supabaseAnonKey
     )
 
     
     func getCurrentSession() async throws -> AppUser {
         let session = try await client.auth.session
         print(session)
+        return AppUser(uid: session.user.id.uuidString, email: session.user.email)
+    }
+
+    // MARK: - Register New User with Email
+    func registerNewUserWithEmail(email: String, password: String) async throws -> AppUser {
+        let regAuthResponse = try await client.auth.signUp(email: email, password: password)
+        guard let session = regAuthResponse.session else {
+            print("Error: No session found")
+            throw AuthError.sessionMissing
+        }
+        return AppUser(uid: session.user.id.uuidString, email: session.user.email)
+    }
+
+    // MARK: - Sign In with Email
+    func signInWithEmail(email: String, password: String) async throws -> AppUser {
+        let session = try await client.auth.signIn(email: email, password: password)
+        print(session)
+        print(session.user)
         return AppUser(uid: session.user.id.uuidString, email: session.user.email)
     }
     

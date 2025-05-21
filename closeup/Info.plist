@@ -15,5 +15,9 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>719324787830-2r844vnnea1t0pegpkdr82bqlped6gvs.apps.googleusercontent.com</string>
+	<key>SupabaseUrl</key>
+	<string>https://frjkiymssmpphkktvmsl.supabase.co</string>
+	<key>SupabaseAnonKey</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyamtpeW1zc21wcGhra3R2bXNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NDQyODAsImV4cCI6MjA2MTUyMDI4MH0.uu681e7ZdLMimZiae00-wcBL8wE04PqA8xoneXv3Pjc</string>
 </dict>
 </plist>

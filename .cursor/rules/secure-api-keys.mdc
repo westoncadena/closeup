@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Enforce secure handling of API keys and secrets in iOS projects.
+globs: ["**/*.swift", "**/*.plist", "**/*.xcconfig"]
+alwaysApply: true
+---
+
+# API Key and Secret Management Rules
+
+- Never hardcode API keys or secrets in source code or files tracked by Git.
+- Store secrets in configuration files (e.g., `Config.xcconfig`, `Secrets.plist`) that are listed in `.gitignore` and not committed to the repository.
+- For Xcode projects, use `.xcconfig` files for secrets and add them to `.gitignore`.
+- If using `.plist` or `.json` files for secrets, ensure these files are excluded from Git and referenced securely at runtime.
+- For GitHub Actions or CI/CD, store secrets in GitHub Secrets and reference them via environment variables.
+- Use the iOS Keychain for storing secrets at runtime; never persist them in plaintext files on device.
+- Optionally, retrieve sensitive keys from a secure server at runtime and store only in Keychain.
+- Add all secret-containing files (e.g., `Config.xcconfig`, `Secrets.plist`, `api_keys.json`) to both `.gitignore` and `.cursorignore`.
+- Regularly audit the repository for accidental secret commits and rotate any exposed keys immediately.

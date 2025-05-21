@@ -13,6 +13,7 @@ struct SignInView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isRegistrationPresented: Bool = false
+    @State private var errorMessage: String?
     
     @Binding var appUser: AppUser?
     
@@ -25,15 +26,32 @@ struct SignInView: View {
             }
             .padding(.horizontal, 24)
             
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.top, 4)
+            }
+            
             Button("New User? Register Here") {
                 isRegistrationPresented.toggle()
             }
             .sheet(isPresented: $isRegistrationPresented){
-                RegistrationView()
+                RegistrationView(appUser: $appUser)
+                    .environmentObject(viewModel)
             }
             
             Button {
-                print("Sign In")
+                Task{
+                    do {
+                        let appUser = try await viewModel.signInWithEmail(email: email, password: password)
+                        self.appUser = appUser
+                    } catch let error as SignInError {
+                        errorMessage = error.message
+                    } catch {
+                        errorMessage = "An unexpected error occurred. Please try again."
+                    }
+                }
             } label: {
                 Text("Sign In")
                     .padding()

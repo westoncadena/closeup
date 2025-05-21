@@ -1,0 +1,26 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Enforce SwiftUI best practices and project-specific conventions for this iOS app.
+globs: **/*.swift
+alwaysApply: true
+---
+
+# iOS SwiftUI Best Practices
+
+- Use SwiftUI's built-in components (List, NavigationView, TabView, SF Symbols) for consistency and native appearance.
+- Follow MVVM architecture: separate business logic from UI code.
+- Use VStack, HStack, ZStack, Spacer, and Padding for responsive layouts; prefer LazyVGrid/LazyHGrid for grids.
+- Prefer property wrappers (@State, @ObservedObject, @EnvironmentObject) for state management.
+- Avoid UIKit unless absolutely necessary.
+- Do not delete comments or existing code unless required for new features.
+- Build iteratively: add features on top of existing implementation.
+- Ensure accessibility: support VoiceOver, dynamic text, and haptics.
+- Include error handling and user feedback for all async operations.
+- Use strong typing and optionals safely; avoid force-unwrapping.
+- All media uploads should use Firebase Storage; store URLs in Supabase.
+- For audience selection, use the `visibility` field (`everyone`, `inner_circle`).
+- For connections, reference the connections table to determine "Inner Circle" membership.
