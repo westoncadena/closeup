@@ -8,30 +8,33 @@
 import SwiftUI
 
 struct HomeView: View {
-    @State var appUser: AppUser
+    @Binding var appUser: AppUser?
     
     var body: some View {
         VStack{
-            Text(appUser.uid)
-            Text(appUser.email ?? "No Email")
-            
-            Button{
-                Task {
-                    do {
-                        try await AuthManager.shared.signOut()
+            if let user = appUser {
+                Text(user.uid)
+                Text(user.email ?? "No Email")
+                
+                Button{
+                    Task {
+                        do {
+                            try await AuthManager.shared.signOut()
+                            appUser = nil
+                        }
+                        catch {
+                            print("Error signing out: \(error)")
+                        }
                     }
-                    catch {
-                        print("Error signing out: \(error)")
-                    }
+                } label: {
+                    Text("Sign Out")
+                        .foregroundColor(.red)
                 }
-            } label: {
-                Text("Sign Out")
-                    .foregroundColor(.red)
             }
         }
     }
 }
 
 #Preview {
-    HomeView(appUser: .init(uid: "123", email: "test@test.com"))
+    HomeView(appUser: .constant(.init(uid: "123", email: "test@test.com")))
 }

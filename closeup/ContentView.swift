@@ -1,18 +1,19 @@
-//
-//  ContentView.swift
-//  closeup
-//
-//  Created by Weston Cadena on 5/9/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @Binding var appUser: AppUser?
+    
     var body: some View {
-        SignInView(appUser: .constant(AppUser(uid: "123", email: "test@test.com")))
+        ZStack {
+            if let appUser = appUser {
+                HomeView(appUser: $appUser)
+            } else {
+                SignInView(appUser: $appUser)
+            }
+        }
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(appUser: .constant(nil))
 }

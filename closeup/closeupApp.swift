@@ -10,12 +10,13 @@ import GoogleSignIn
 
 @main
 struct closeupApp: App {
+    @State private var appUser: AppUser?
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(appUser: $appUser)
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
-
                 }
         }
     }
