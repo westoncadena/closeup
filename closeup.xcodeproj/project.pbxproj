@@ -45,28 +45,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Views/SignIn/.swift,
 			);
 			target = 9A555E702DCEC05800A0FFB9 /* closeup */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		9A900F8A2DDD0B4100F397F6 /* Exceptions for "closeup" folder in "Compile Sources" phase from "closeup" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 9A555E6D2DCEC05800A0FFB9 /* Sources */;
-			membershipExceptions = (
-				Views/SignIn/.swift,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9A555E732DCEC05800A0FFB9 /* closeup */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				9A555EB82DCECBA600A0FFB9 /* Exceptions for "closeup" folder in "closeup" target */,
-				9A900F8A2DDD0B4100F397F6 /* Exceptions for "closeup" folder in "Compile Sources" phase from "closeup" target */,
 			);
 			path = closeup;
 			sourceTree = "<group>";
