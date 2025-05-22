@@ -9,11 +9,6 @@ import Foundation
 import Supabase
 import GoogleSignIn
 
-struct AppUser {
-    let uid: String
-    let email: String?
-}
-
 class AuthManager {
     static let shared = AuthManager()
     

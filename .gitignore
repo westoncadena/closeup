@@ -93,3 +93,6 @@ iOSInjectionProject/
 .env
 GoogleService-Info.plist
 closeup/Info.plist
+
+
+.cursor/
