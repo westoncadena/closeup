@@ -16,7 +16,7 @@ struct HomeView: View {
     private let postService = PostService() // Instance of your service
     
     // Mock data for PostView navigation - ideally PostView fetches this itself
-    private let defaultMockUser = User(name: "Loading...", profileImageName: "person.fill") // From PostView
+    private let defaultMockUser = User(id: UUID(), name: "Loading...", profileImageName: "person.fill") // From PostView
     private let defaultMockComments: [Comment] = [] // From PostView
 
     var body: some View {

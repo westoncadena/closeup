@@ -1,22 +1,6 @@
 import SwiftUI
 
-// MARK: - Mock Data Structures (Assuming these are defined elsewhere, or we define them simply here for preview)
-// If you have these models defined in your project already, you can remove these.
-// For simplicity, I'm including basic versions here.
-
-// Assuming a User struct/class exists for author details
-struct User: Identifiable {
-    let id = UUID()
-    let name: String
-    let profileImageName: String // System name for SFSymbol or asset name
-}
-
-// Assuming a Comment struct/class exists
-struct Comment: Identifiable {
-    let id = UUID()
-    let user: User
-    let text: String
-}
+// Mock data structures have been moved to the Models folder.
 
 // Assuming a Post struct/class exists.
 // Make sure this matches the Post struct you're using in HomeView or your PostService
@@ -51,7 +35,7 @@ struct PostView: View {
         self.post = post
         // For live data, you'd fetch User details based on post.userId
         // For preview, we pass it in.
-        self._displayAuthor = State(initialValue: mockAuthor ?? User(name: "Unknown User", profileImageName: "person.fill"))
+        self._displayAuthor = State(initialValue: mockAuthor ?? User(id: UUID(), name: "Unknown User", profileImageName: "person.fill"))
         self._displayLikes = State(initialValue: mockLikes)
         self._displayComments = State(initialValue: mockComments)
     }
@@ -230,14 +214,14 @@ struct CommentsListView: View {
 // MARK: - Preview
 #Preview {
     // Mock Users
-    let eunsoo = User(name: "Eunsoo Yeo", profileImageName: "person.fill")
-    let weston = User(name: "Weston Cadena", profileImageName: "person.crop.circle.fill")
-    let mckenzie = User(name: "Mckenzie Stanley", profileImageName: "person.crop.square.fill")
+    let eunsoo = User(id: UUID(), name: "Eunsoo Yeo", profileImageName: "person.fill")
+    let weston = User(id: UUID(), name: "Weston Cadena", profileImageName: "person.crop.circle.fill")
+    let mckenzie = User(id: UUID(), name: "Mckenzie Stanley", profileImageName: "person.crop.square.fill")
 
     // Mock Comments
-    let comment1 = Comment(user: weston, text: "Cool stuff")
-    let comment2 = Comment(user: mckenzie, text: "AMAZE!!!")
-    let comment3 = Comment(user: eunsoo, text: "Thanks for the feedback everyone! Really appreciate it.")
+    let comment1 = Comment(id: UUID(), user: weston, text: "Cool stuff")
+    let comment2 = Comment(id: UUID(), user: mckenzie, text: "AMAZE!!!")
+    let comment3 = Comment(id: UUID(), user: eunsoo, text: "Thanks for the feedback everyone! Really appreciate it.")
 
 
     // Mock Post
@@ -254,7 +238,7 @@ struct CommentsListView: View {
         createdAt: Date()
     )
     
-    return PostView(post: mockPost, mockAuthor: eunsoo, mockLikes: 10, mockComments: [comment1, comment2, comment3])
+    PostView(post: mockPost, mockAuthor: eunsoo, mockLikes: 10, mockComments: [comment1, comment2, comment3])
 }
 
 

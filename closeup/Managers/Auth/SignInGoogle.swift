@@ -64,7 +64,7 @@ class SignInGoogle {
 }
 
 extension UIApplication {
-    class func getTopViewController(base: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UIViewController? {
+    class func getTopViewController(base: UIViewController? = nil) -> UIViewController? {
         // Ensure we're on the main thread
         if !Thread.isMainThread {
             var result: UIViewController?
@@ -73,15 +73,29 @@ extension UIApplication {
             }
             return result
         }
+
+        // Determine the base view controller if not provided
+        let effectiveBase: UIViewController?
+        if let providedBase = base {
+            effectiveBase = providedBase
+        } else {
+            // Use the new approach for scene-based applications
+            effectiveBase = UIApplication.shared.connectedScenes
+                .filter { $0.activationState == .foregroundActive }
+                .compactMap { $0 as? UIWindowScene }
+                .first?.windows
+                .filter { $0.isKeyWindow }
+                .first?.rootViewController
+        }
         
         // Now we can safely access UI elements
-        if let nav = base as? UINavigationController {
+        if let nav = effectiveBase as? UINavigationController {
             return getTopViewController(base: nav.visibleViewController)
-        } else if let tab = base as? UITabBarController, let selected = tab.selectedViewController {
+        } else if let tab = effectiveBase as? UITabBarController, let selected = tab.selectedViewController {
             return getTopViewController(base: selected)
-        } else if let presented = base?.presentedViewController {
+        } else if let presented = effectiveBase?.presentedViewController {
             return getTopViewController(base: presented)
         }
-        return base
+        return effectiveBase
     }
 }
