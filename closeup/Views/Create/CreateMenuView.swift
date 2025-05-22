@@ -9,15 +9,17 @@ struct CreateMenuView: View {
         let iconName: String
     }
     
+    @State private var showCreateJournalView = false
+    
     private let menuOptions: [MenuOption] = [
         MenuOption(
-            title: "Thoughts",
-            description: "Just write whatever’s on your mind — no structure, no pressure.",
-            iconName: "lightbulb"
+            title: "Journal",
+            description: "Just write whatever's on your mind — no structure, no pressure.",
+            iconName: "book.closed"
         ),
         MenuOption(
             title: "Prompt",
-            description: "A little question to get you started if you’re not sure what to write.",
+            description: "A little question to get you started if you're not sure what to write.",
             iconName: "questionmark.circle"
         ),
         MenuOption(
@@ -62,6 +64,13 @@ struct CreateMenuView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if option.title == "Journal" {
+                        showCreateJournalView = true
+                    }
+                    // Handle other options if necessary
+                }
                 
                 if idx < menuOptions.count - 1 {
                     Divider()
@@ -96,6 +105,9 @@ struct CreateMenuView: View {
             .shadow(radius: 2)
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
+        }
+        .fullScreenCover(isPresented: $showCreateJournalView) {
+            CreateJournalView()
         }
         .background(Color.white.ignoresSafeArea())
     }
