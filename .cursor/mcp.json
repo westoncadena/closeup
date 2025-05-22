@@ -1,9 +1,13 @@
 {
-    "servers": [
-      {
-        "name": "Supabase MCP",
-        "url": "http://localhost:5433"
-      }
-    ]
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_2bdf3dd2e268f641d73c3b55770b6bf02fe0b31c"
+      ]
+    }
   }
-  
+}
