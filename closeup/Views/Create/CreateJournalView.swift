@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct CreateJournalView: View {
     let appUser: AppUser
@@ -8,10 +9,19 @@ struct CreateJournalView: View {
     @State private var content: String = ""
     @State private var selectedDate: Date = Date()
     @State private var showDatePicker = false
-    @State private var audience: Audience = .everyone
+    @State private var audience: Audience = .personal
+    
+    // Text formatting states
+    @State private var isBold: Bool = false
+    @State private var isItalic: Bool = false
+    @State private var isUnderlined: Bool = false
+    @State private var isBulletedList: Bool = false
+    @State private var isQuoteField: Bool = false
+    @State private var selectedMedia: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
     
     enum Audience: String, CaseIterable {
-        case everyone = "Private"
+        case personal = "Personal"
         case friends = "Friends"
         case innerCircle = "Inner Circle"
     }
@@ -100,23 +110,34 @@ struct CreateJournalView: View {
                     }
                     .padding(.horizontal)
                 
-                /* Commented out toolbar as requested
-                // Formatting toolbar
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 15) {
-                        // ... toolbar content ...
-                    }
-                    .padding()
+                // Selected Image Preview
+                if let imageData = selectedImageData,
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .padding(.horizontal)
                 }
-                .background(Color(.systemGray6))
-                */
+                
+                // Text Toolbar
+                TextToolbar(
+                    isBold: $isBold,
+                    isItalic: $isItalic,
+                    isUnderlined: $isUnderlined,
+                    isBulletedList: $isBulletedList,
+                    isQuoteField: $isQuoteField,
+                    onPhotoSelected: { item in
+                        handlePhotoSelection(item)
+                    }
+                )
             }
             .padding(.top)
             .navigationBarItems(
                 leading: Button("Cancel") {
                     dismiss()
                 },
-                trailing: Button("Post") {
+                trailing: Button("Save") {
                     submitPost()
                 }
                 .disabled(title.isEmpty)
@@ -124,16 +145,27 @@ struct CreateJournalView: View {
         }
     }
     
+    private func handlePhotoSelection(_ item: PhotosPickerItem) {
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                await MainActor.run {
+                    selectedImageData = data
+                }
+            }
+        }
+    }
+    
     private func submitPost() {
         Task {
             do {
                 let postService = PostService()
+                let mediaImage: UIImage? = selectedImageData.flatMap { UIImage(data: $0) }
                 try await postService.createPost(
                     user_id: appUser.uid,
                     post_type: .journal,
                     content: content,
                     audience: audience.rawValue,
-                    media: nil
+                    media: mediaImage
                 )
                 dismiss()
             } catch {

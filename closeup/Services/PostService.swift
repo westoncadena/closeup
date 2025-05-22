@@ -10,6 +10,19 @@ enum PostType: String, Encodable {
     case thread = "thread"
 }
 
+// Define valid database audience values
+private enum DatabaseAudience {
+    static func convert(_ displayAudience: String) -> String {
+        // Convert display-friendly audience values to database-accepted values
+        switch displayAudience.lowercased() {
+        case "personal": return "private"
+        case "friends": return "friends"
+        case "inner circle": return "circle"
+        default: return "private" // Default to private for safety
+        }
+    }
+}
+
 // Define the structure for the post data to be sent to Supabase
 struct PostPayload: Encodable {
     let user_id: String
@@ -18,6 +31,15 @@ struct PostPayload: Encodable {
     let audience: String
     let media_url: String?
     let media_type: String?
+    
+    init(user_id: String, post_type: String, content: String, audience: String, media_url: String?, media_type: String?) {
+        self.user_id = user_id
+        self.post_type = post_type
+        self.content = content
+        self.audience = DatabaseAudience.convert(audience)
+        self.media_url = media_url
+        self.media_type = media_type
+    }
 }
 
 // Post struct has been moved to Models/Post.swift
@@ -59,25 +81,21 @@ class PostService: ObservableObject { // Conform to ObservableObject
         var media_url: String? = nil
         var media_type: String? = nil
 
-        // 1. If media exists, upload it to Supabase Storage first
+        // 1. If media exists, try to upload it to Supabase Storage
         if let imageToUpload = media, let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
             let fileName = "\(UUID().uuidString).jpg"
-            // Define a path like "posts_media/{userId}/{fileName}"
-            // Using a "posts_media" top-level folder, then user-specific subfolders.
             let storagePath = "posts_media/\(user_id)/\(fileName)"
 
             do {
                 print("Attempting to upload media to path: \(storagePath)")
                 // Upload the file
                 _ = try await client.storage
-                    .from("media") // Assuming your bucket is named "media"
+                    .from("media")
                     .upload(storagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
                 
                 print("Media uploaded successfully.")
 
                 // Get the public URL for the uploaded file
-                // Note: Ensure your bucket ("media") and the files within are configured for public access
-                // or use signed URLs if you need more restricted access.
                 let response = try client.storage
                     .from("media")
                     .getPublicURL(path: storagePath)
@@ -88,10 +106,8 @@ class PostService: ObservableObject { // Conform to ObservableObject
 
             } catch {
                 print("Media upload failed: \(error)")
-                // You might want to decide if a failed media upload should prevent post creation
-                // or if the post should be created without media.
-                // For this example, we'll throw the error.
-                throw error
+                // Continue with post creation without media
+                print("Continuing with post creation without media")
             }
         }
 
@@ -109,9 +125,9 @@ class PostService: ObservableObject { // Conform to ObservableObject
         do {
             print("Attempting to insert post: \(postPayload)")
             try await client
-                .from("posts") // Assuming your table is named "posts"
+                .from("posts")
                 .insert(postPayload)
-                .execute() // Essential for triggering the insert operation
+                .execute()
             print("Post inserted successfully.")
         } catch {
             print("Database insert failed: \(error)")
