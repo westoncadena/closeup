@@ -12,13 +12,12 @@ enum PostType: String, Encodable {
 
 // Define the structure for the post data to be sent to Supabase
 struct PostPayload: Encodable {
-    let user_id: String // Assuming Supabase client handles String to UUID conversion if needed
+    let user_id: String
     let post_type: String
     let content: String
     let audience: String
     let media_url: String?
-    // created_at will be handled by Supabase (default now())
-    // prompt_id and thread_id can be added later if needed
+    let media_type: String?
 }
 
 // Post struct has been moved to Models/Post.swift
@@ -51,20 +50,21 @@ class PostService: ObservableObject { // Conform to ObservableObject
     ///   - media: An optional UIImage to be uploaded as media for the post.
     /// - Throws: An error if the post creation or media upload fails.
     func createPost(
-        userId: String,
-        postType: PostType,
+        user_id: String,
+        post_type: PostType,
         content: String,
         audience: String,
         media: UIImage? = nil
     ) async throws {
-        var mediaURL: String? = nil
+        var media_url: String? = nil
+        var media_type: String? = nil
 
         // 1. If media exists, upload it to Supabase Storage first
         if let imageToUpload = media, let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
             let fileName = "\(UUID().uuidString).jpg"
             // Define a path like "posts_media/{userId}/{fileName}"
             // Using a "posts_media" top-level folder, then user-specific subfolders.
-            let storagePath = "posts_media/\(userId)/\(fileName)"
+            let storagePath = "posts_media/\(user_id)/\(fileName)"
 
             do {
                 print("Attempting to upload media to path: \(storagePath)")
@@ -82,8 +82,9 @@ class PostService: ObservableObject { // Conform to ObservableObject
                     .from("media")
                     .getPublicURL(path: storagePath)
                 
-                mediaURL = response.absoluteString
-                print("Public media URL: \(mediaURL ?? "Not available")")
+                media_url = response.absoluteString
+                media_type = "image/jpeg"
+                print("Public media URL: \(media_url ?? "Not available")")
 
             } catch {
                 print("Media upload failed: \(error)")
@@ -96,11 +97,12 @@ class PostService: ObservableObject { // Conform to ObservableObject
 
         // 2. Prepare the post payload
         let postPayload = PostPayload(
-            user_id: userId,
-            post_type: postType.rawValue,
+            user_id: user_id,
+            post_type: post_type.rawValue,
             content: content,
             audience: audience,
-            media_url: mediaURL
+            media_url: media_url,
+            media_type: media_type
         )
 
         // 3. Insert the post into the "posts" table
@@ -144,21 +146,21 @@ class PostService: ObservableObject { // Conform to ObservableObject
     /// - Parameter userId: The ID of the user whose posts are to be fetched.
     /// - Returns: An array of `Post` objects belonging to the user.
     /// - Throws: An error if fetching or decoding fails.
-    func fetchPosts(forUserId userId: String) async throws -> [Post] {
+    func fetchPosts(forUserId user_id: String) async throws -> [Post] {
         do {
-            print("Attempting to fetch posts for user ID: \(userId)...")
+            print("Attempting to fetch posts for user ID: \(user_id)...")
             let response: [Post] = try await client
                 .from("posts")
                 .select() // Selects all columns
-                .eq("user_id", value: userId) // Filter by user_id
+                .eq("user_id", value: user_id) // Filter by user_id
                 .order("created_at", ascending: false) // Optional: order by creation date, newest first
                 .execute()
                 .value
             
-            print("Successfully fetched \(response.count) posts for user ID: \(userId).")
+            print("Successfully fetched \(response.count) posts for user ID: \(user_id).")
             return response
         } catch {
-            print("Failed to fetch posts for user ID \(userId): \(error)")
+            print("Failed to fetch posts for user ID \(user_id): \(error)")
             throw error
         }
     }

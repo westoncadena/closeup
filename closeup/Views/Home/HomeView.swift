@@ -9,15 +9,15 @@ import SwiftUI
 
 struct HomeView: View {
     @Binding var appUser: AppUser?
-    @State private var userPosts: [Post] = [] // To store fetched posts
+    @State private var userPosts: [Post] = []
     @State private var isLoadingPosts: Bool = false
     @State private var postFetchError: String? = nil
 
-    private let postService = PostService() // Instance of your service
+    private let postService = PostService()
     
-    // Mock data for PostView navigation - ideally PostView fetches this itself
-    private let defaultMockUser = User(id: UUID(), name: "Loading...", profileImageName: "person.fill") // From PostView
-    private let defaultMockComments: [Comment] = [] // From PostView
+    // Mock data for PostView navigation
+    private let defaultMockUser = User(id: UUID(), name: "Loading...", profileImageName: "person.fill")
+    private let defaultMockComments: [Comment] = []
 
     var body: some View {
         NavigationView {
@@ -35,17 +35,17 @@ struct HomeView: View {
                     } else if let error = postFetchError {
                         Text("Error fetching post: \(error)")
                             .foregroundColor(.red)
-                    } else if let firstPost = userPosts.first { // Display the first post
+                    } else if let firstPost = userPosts.first {
                         NavigationLink(destination: PostView(post: firstPost, 
-                                                               mockAuthor: defaultMockUser, 
-                                                               mockLikes: 0, // Placeholder
-                                                               mockComments: defaultMockComments)) {
+                                                          mockAuthor: defaultMockUser, 
+                                                          mockLikes: 0,
+                                                          mockComments: defaultMockComments)) {
                             VStack(alignment: .leading) {
                                 Text("Your Latest Post:")
                                     .font(.headline)
                                 Text(firstPost.content)
                                     .padding(.vertical, 5)
-                                if let mediaUrlString = firstPost.mediaUrl, let mediaUrl = URL(string: mediaUrlString) {
+                                if let mediaUrlString = firstPost.media_url, let mediaUrl = URL(string: mediaUrlString) {
                                     AsyncImage(url: mediaUrl) {
                                         $0.resizable()
                                           .aspectRatio(contentMode: .fit)
@@ -56,27 +56,27 @@ struct HomeView: View {
                                             .frame(height: 200)
                                     }
                                 }
-                                Text("Posted on: \(firstPost.createdAt, style: .date) at \(firstPost.createdAt, style: .time)")
+                                Text("Posted on: \(firstPost.created_at, style: .date) at \(firstPost.created_at, style: .time)")
                                     .font(.footnote)
                                     .foregroundColor(.gray)
                             }
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
-                            .foregroundColor(Color.primary) // Ensures text inside link is not blue by default
+                            .foregroundColor(Color.primary)
                         }
                     } else {
                         Text("You haven't made any posts yet, or no posts found.")
                     }
                     
-                    Spacer() // Pushes sign out button to the bottom
+                    Spacer()
 
-                    Button{
+                    Button {
                         Task {
                             do {
                                 try await AuthManager.shared.signOut()
                                 appUser = nil
-                                userPosts = [] // Clear posts on sign out
+                                userPosts = []
                                 postFetchError = nil
                             }
                             catch {
@@ -93,16 +93,16 @@ struct HomeView: View {
                     }
                 }
             }
-            .padding() // Add padding to the main VStack
+            .padding()
             .navigationTitle("Home")
             .onAppear {
                 if let userId = appUser?.uid {
-                    fetchUserPosts(userId: userId)
+                    fetchUserPosts(user_id: userId)
                 }
             }
             .onChange(of: appUser) { newUser in
                 if let userId = newUser?.uid {
-                    fetchUserPosts(userId: userId)
+                    fetchUserPosts(user_id: userId)
                 } else {
                     userPosts = []
                     postFetchError = nil
@@ -111,19 +111,17 @@ struct HomeView: View {
         }
     }
 
-    private func fetchUserPosts(userId: String) {
+    private func fetchUserPosts(user_id: String) {
         isLoadingPosts = true
         postFetchError = nil
         Task {
             do {
-                let posts = try await postService.fetchPosts(forUserId: userId)
-                // Update on the main thread
+                let posts = try await postService.fetchPosts(forUserId: user_id)
                 await MainActor.run {
                     self.userPosts = posts
                     self.isLoadingPosts = false
                 }
             } catch {
-                // Update on the main thread
                 await MainActor.run {
                     self.postFetchError = error.localizedDescription
                     self.isLoadingPosts = false
@@ -134,29 +132,20 @@ struct HomeView: View {
 }
 
 #Preview {
-    // Create a mock AppUser
-    let mockUser = AppUser(uid: "12345-67890-ABCDEF-GHIJKL", email: "test@test.com") // Using a more UUID-like string for clarity
-    // Create a mock Post, ensuring all required fields are present and types are correct
+    let mockUser = AppUser(uid: "12345-67890-ABCDEF-GHIJKL", email: "test@test.com")
+    
     let mockPost = Post(
-        id: UUID(), 
-        userId: UUID(), // Or nil if appropriate for your preview case. Ensure it's a UUID.
-        content: "This is a sample post content from the preview. It should be engaging and demonstrate the UI nicely.", 
-        mediaUrl: "https://placekitten.com/g/300/200", // Using a placeholder image service
-        mediaType: "image/jpeg", 
-        audience: "friends", 
-        type: "thoughts", 
-        promptId: nil, // Or a UUID() if you want to preview a post linked to a prompt
-        threadId: nil, // Or a UUID() if you want to preview a post linked to a thread
-        createdAt: Date()
+        id: UUID(),
+        user_id: UUID(),
+        content: "This is a sample post content from the preview. It should be engaging and demonstrate the UI nicely.",
+        media_url: "https://placekitten.com/g/300/200",
+        media_type: "image/jpeg",
+        audience: "friends",
+        post_type: "journal",
+        prompt_id: nil,
+        thread_id: nil,
+        created_at: Date()
     )
     
-    // Create a HomeView and manually set the user for preview
-    let homeView = HomeView(appUser: .constant(mockUser))
-    // To see the post UI in preview directly without relying on fetch, you would typically pass mock data in.
-    // One way is to initialize @State userPosts directly within the HomeView for preview purposes, 
-    // or use a PreviewProvider struct for more complex scenarios.
-    // For now, the fetch logic will run. If you want to guarantee the post is shown, 
-    // you could temporarily modify HomeView to accept an optional initial Post array for its state.
-
-    homeView
+    return HomeView(appUser: .constant(mockUser))
 }

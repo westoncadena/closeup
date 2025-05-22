@@ -19,10 +19,9 @@ struct Post: Identifiable {
 */
 
 struct PostView: View {
-    // Environment variable to dismiss the view (for the back button)
     @Environment(\.dismiss) var dismiss
     
-    let post: Post // This will now refer to the Post struct from PostService.swift
+    let post: Post
     @State private var showCommentsSheet: Bool = false
     
     // Mock data for UI elements not directly in PostService.Post for now
@@ -30,11 +29,9 @@ struct PostView: View {
     @State private var displayLikes: Int = 0
     @State private var displayComments: [Comment] = []
 
-    // Initializer to help with preview and bridge the gap
     init(post: Post, mockAuthor: User? = nil, mockLikes: Int = 0, mockComments: [Comment] = []) {
         self.post = post
-        // For live data, you'd fetch User details based on post.userId
-        // For preview, we pass it in.
+        // For live data, you'd fetch User details based on post.user_id
         self._displayAuthor = State(initialValue: mockAuthor ?? User(id: UUID(), name: "Unknown User", profileImageName: "person.fill"))
         self._displayLikes = State(initialValue: mockLikes)
         self._displayComments = State(initialValue: mockComments)
@@ -45,16 +42,16 @@ struct PostView: View {
             VStack(alignment: .leading, spacing: 16) {
                 // MARK: - Author Information
                 HStack {
-                    Image(systemName: displayAuthor.profileImageName) // Using displayAuthor
+                    Image(systemName: displayAuthor.profileImageName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 40, height: 40)
                         .clipShape(Circle())
                         .padding(.trailing, 8)
-                    Text(displayAuthor.name) // Using displayAuthor
+                    Text(displayAuthor.name)
                         .font(.headline)
                     Spacer()
-                    Text(post.type.capitalized) // Using post.type from PostService.Post (e.g. "thoughts" -> "Thoughts")
+                    Text(post.post_type.capitalized)
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
@@ -65,9 +62,8 @@ struct PostView: View {
                     .font(.body)
                     .padding(.horizontal)
 
-                // MARK: - Media Carousel (Adapted for single mediaUrl)
-                if let mediaUrlString = post.mediaUrl, let url = URL(string: mediaUrlString) {
-                    // For now, just showing the single image if available
+                // MARK: - Media
+                if let mediaUrlString = post.media_url, let url = URL(string: mediaUrlString) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -78,11 +74,11 @@ struct PostView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 250) // Adjust height as needed
+                                .frame(height: 250)
                                 .clipped()
                                 .cornerRadius(8)
                         case .failure:
-                            Image(systemName: "photo") // Placeholder for failed load
+                            Image(systemName: "photo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(height: 250)
@@ -92,7 +88,7 @@ struct PostView: View {
                         }
                     }
                     .padding(.horizontal)
-                } else if post.mediaUrl != nil {
+                } else if post.media_url != nil {
                     // Case where mediaUrl string is invalid but not nil
                     Image(systemName: "photo.on.rectangle.angled")
                         .resizable()
@@ -103,17 +99,15 @@ struct PostView: View {
                         .overlay(Text("Invalid Media URL").foregroundColor(.red))
                 }
 
-
                 // MARK: - Likes and Comments Bar
                 HStack(spacing: 20) {
                     Button(action: {
                         // TODO: Implement like action
                         print("Like button tapped")
-                        // self.displayLikes += 1 // Example interaction
                     }) {
                         HStack {
                             Image(systemName: "hand.thumbsup")
-                            Text("\(displayLikes)") // Using displayLikes
+                            Text("\(displayLikes)")
                         }
                     }
                     
@@ -123,10 +117,10 @@ struct PostView: View {
                     }) {
                         HStack {
                             Image(systemName: "message")
-                            Text("\(displayComments.count)") // Using displayComments
+                            Text("\(displayComments.count)")
                         }
                     }
-                    Spacer() // Pushes like/comment to the left
+                    Spacer()
                 }
                 .font(.subheadline)
                 .foregroundColor(.gray)
@@ -135,40 +129,37 @@ struct PostView: View {
 
                 Divider().padding(.horizontal)
 
-                // MARK: - Comments Preview (as in the design)
+                // MARK: - Comments Preview
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(displayComments.prefix(2)) { comment in // Show first 2 displayComments
+                    ForEach(displayComments.prefix(2)) { comment in
                         CommentRow(comment: comment)
                     }
                 }
                 .padding(.horizontal)
                 
-                Spacer() // Pushes content to the top
+                Spacer()
             }
-            // The sheet for showing all comments
             .sheet(isPresented: $showCommentsSheet) {
-                // Ensure CommentsListView can handle the Comment struct defined in this file
-                CommentsListView(comments: displayComments) // Using displayComments
+                CommentsListView(comments: displayComments)
             }
             .onAppear {
                 // Here you would typically fetch the author details, likes, and comments
                 // For example:
-                // fetchUserDetails(userId: post.userId)
+                // fetchUserDetails(userId: post.user_id)
                 // fetchLikesCount(postId: post.id)
                 // fetchComments(postId: post.id)
-                // For now, they are set via initializer or use default mock values.
             }
         }
     }
 }
 
-// MARK: - Comment Row View (Helper)
+// MARK: - Comment Row View
 struct CommentRow: View {
     let comment: Comment
 
     var body: some View {
         HStack(alignment: .top) {
-            Image(systemName: comment.user.profileImageName) // Placeholder
+            Image(systemName: comment.user.profileImageName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
@@ -190,16 +181,16 @@ struct CommentRow: View {
     }
 }
 
-// MARK: - Comments List View (for the sheet)
+// MARK: - Comments List View
 struct CommentsListView: View {
     let comments: [Comment]
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        NavigationView { // To have a title and dismiss button for the sheet
+        NavigationView {
             List {
                 ForEach(comments) { comment in
-                    CommentRow(comment: comment) // Reusing the CommentRow
+                    CommentRow(comment: comment)
                 }
             }
             .navigationTitle("Comments")
@@ -210,8 +201,6 @@ struct CommentsListView: View {
     }
 }
 
-
-// MARK: - Preview
 #Preview {
     // Mock Users
     let eunsoo = User(id: UUID(), name: "Eunsoo Yeo", profileImageName: "person.fill")
@@ -223,19 +212,18 @@ struct CommentsListView: View {
     let comment2 = Comment(id: UUID(), user: mckenzie, text: "AMAZE!!!")
     let comment3 = Comment(id: UUID(), user: eunsoo, text: "Thanks for the feedback everyone! Really appreciate it.")
 
-
     // Mock Post
     let mockPost = Post(
         id: UUID(),
-        userId: UUID(), // This is from PostService.Post now
+        user_id: UUID(),
         content: "I am building this really cool app with Weston. I hope this becomes really helpful for people. The app will help people keep in touch more intentionally!",
-        mediaUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80", // Single URL
-        mediaType: "image/jpeg",
-        audience: "friends", // Field from PostService.Post
-        type: "thoughts",    // Field from PostService.Post
-        promptId: nil,
-        threadId: nil,
-        createdAt: Date()
+        media_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80",
+        media_type: "image/jpeg",
+        audience: "friends",
+        post_type: "journal",
+        prompt_id: nil,
+        thread_id: nil,
+        created_at: Date()
     )
     
     PostView(post: mockPost, mockAuthor: eunsoo, mockLikes: 10, mockComments: [comment1, comment2, comment3])
