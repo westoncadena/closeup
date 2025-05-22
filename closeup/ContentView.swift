@@ -6,7 +6,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if appUser != nil {
-                HomeView(appUser: $appUser)
+                MainTabView(appUser: $appUser)
             } else {
                 SignInView(appUser: $appUser)
             }
