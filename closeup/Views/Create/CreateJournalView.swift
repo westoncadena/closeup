@@ -2,10 +2,13 @@ import SwiftUI
 
 struct CreateJournalView: View {
     @Environment(\.presentationMode) var presentationMode
+    @StateObject private var postService = PostService()
     @State private var journalContent: String = ""
     @State private var selectedAudience: Audience = .friends
     @State private var selectedTag: String = "Personal" // Placeholder
     @State private var selectedDate: Date = Date()
+
+    let appUser: AppUser? // Added to accept AppUser
 
     // Placeholder tags - you can replace these with actual data
     let tags = ["Personal", "Work", "Travel", "Ideas", "Gratitude"]
@@ -60,17 +63,39 @@ struct CreateJournalView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Post") {
-                        // Add post action here
-                        print("Post tapped")
-                        // print("Content: \(journalContent)")
-                        // print("Audience: \(selectedAudience.rawValue)")
-                        // print("Tag: \(selectedTag)")
-                        // print("Date: \(selectedDate)")
-                        // Map to Supabase values:
-                        // audience: selectedAudience.rawValue (map "Inner circle" to "circle" if needed for DB)
-                        // post_type: "journal"
-                        // content: journalContent
-                        // created_at: selectedDate (ensure formatting is correct for Supabase)
+                        guard let currentUserId = appUser?.uid else { // Use appUser.uid
+                            print("Error: User ID not found. Cannot post journal entry. Make sure AppUser is passed correctly.")
+                            // Optionally, show an alert to the user
+                            return
+                        }
+
+                        // Map Audience enum to database string value
+                        let audienceValue: String
+                        switch selectedAudience {
+                        case .everyone:
+                            audienceValue = "everyone"
+                        case .friends:
+                            audienceValue = "friends"
+                        case .innerCircle:
+                            audienceValue = "circle" // As per your DB constraint
+                        }
+
+                        Task {
+                            do {
+                                try await postService.createPost(
+                                    userId: currentUserId,
+                                    postType: .journal, // Explicitly using .journal
+                                    content: journalContent,
+                                    audience: audienceValue,
+                                    media: nil // Passing nil for media as it's not in the UI yet
+                                )
+                                print("Journal entry posted successfully!")
+                                presentationMode.wrappedValue.dismiss() // Dismiss on success
+                            } catch {
+                                print("Failed to post journal entry: \(error)")
+                                // You might want to show an alert to the user here
+                            }
+                        }
                     }
                 }
             }
@@ -80,6 +105,7 @@ struct CreateJournalView: View {
 
 struct CreateJournalView_Previews: PreviewProvider {
     static var previews: some View {
-        CreateJournalView()
+        // Pass a mock AppUser for the preview
+        CreateJournalView(appUser: AppUser(uid: "preview-uid", email: "preview@example.com"))
     }
 }

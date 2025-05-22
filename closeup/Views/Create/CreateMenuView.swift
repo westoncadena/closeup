@@ -9,6 +9,7 @@ struct CreateMenuView: View {
         let iconName: String
     }
     
+    let appUser: AppUser?
     @State private var showCreateJournalView = false
     
     private let menuOptions: [MenuOption] = [
@@ -107,7 +108,7 @@ struct CreateMenuView: View {
             .padding(.bottom, 8)
         }
         .fullScreenCover(isPresented: $showCreateJournalView) {
-            CreateJournalView()
+            CreateJournalView(appUser: appUser)
         }
         .background(Color.white.ignoresSafeArea())
     }
@@ -115,6 +116,6 @@ struct CreateMenuView: View {
 
 struct CreateMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        CreateMenuView()
+        CreateMenuView(appUser: AppUser(uid: "preview-uid", email: "preview@example.com"))
     }
 }

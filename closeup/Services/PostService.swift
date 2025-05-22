@@ -1,6 +1,7 @@
 import Supabase
 import Foundation
 import UIKit // For UIImage
+import Combine // Import Combine for ObservableObject
 
 // Define the type of post
 enum PostType: String, Encodable {
@@ -22,7 +23,7 @@ struct PostPayload: Encodable {
 
 // Post struct has been moved to Models/Post.swift
 
-class PostService {
+class PostService: ObservableObject { // Conform to ObservableObject
     // Removed hardcoded URL and Key string properties
 
     private var client: SupabaseClient
