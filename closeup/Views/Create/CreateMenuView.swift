@@ -39,26 +39,20 @@ struct CreateMenuView: View {
                     // Menu options
                     ForEach(menuOptions.indices, id: \.self) { idx in
                         let option = menuOptions[idx]
-                        NavigationLink(destination: Text("Create \(option.title)")) { // Placeholder destination
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(option.title)
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                    Image(systemName: option.iconName)
-                                        .foregroundColor(.primary)
+                        Group {
+                            if option.title == "Journal" {
+                                Button(action: {
+                                    showCreateJournalView = true
+                                }) {
+                                    menuOptionView(for: option)
                                 }
-                                Text(option.description)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .lineLimit(nil)
+                            } else {
+                                NavigationLink(destination: Text("Create \(option.title)")) {
+                                    menuOptionView(for: option)
+                                }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 16)
                         }
-                        .buttonStyle(PlainButtonStyle()) // This removes the default button styling
+                        .buttonStyle(PlainButtonStyle())
                         
                         if idx < menuOptions.count - 1 {
                             Spacer()
@@ -73,7 +67,32 @@ struct CreateMenuView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .background(Color.white.ignoresSafeArea())
+            .fullScreenCover(isPresented: $showCreateJournalView) {
+                if let user = appUser {
+                    CreateJournalView(appUser: user)
+                }
+            }
         }
+    }
+    
+    private func menuOptionView(for option: MenuOption) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(option.title)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                Image(systemName: option.iconName)
+                    .foregroundColor(.primary)
+            }
+            Text(option.description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(nil)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
     }
 }
 
