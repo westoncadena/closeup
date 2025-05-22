@@ -9,7 +9,7 @@ import Foundation
 import Supabase
 import GoogleSignIn
 
-struct AppUser {
+struct AppUser: Equatable {
     let uid: String
     let email: String?
 }

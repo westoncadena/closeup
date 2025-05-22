@@ -19,6 +19,33 @@ struct PostPayload: Encodable {
     // let created_at: String // You might not need to send this explicitly
 }
 
+// Define the structure for a Post when fetching from Supabase
+struct Post: Decodable, Identifiable {
+    let id: UUID // Maps from post_id
+    let userId: UUID? // Maps from user_id, which is nullable UUID
+    let content: String
+    let mediaUrl: String?
+    let mediaType: String?
+    let audience: String
+    let type: String // Maps from post_type
+    let promptId: UUID?
+    let threadId: UUID?
+    let createdAt: Date // Maps from created_at
+
+    enum CodingKeys: String, CodingKey {
+        case id = "post_id"
+        case userId = "user_id"
+        case content
+        case mediaUrl = "media_url"
+        case mediaType = "media_type"
+        case audience
+        case type = "post_type"
+        case promptId = "prompt_id"
+        case threadId = "thread_id"
+        case createdAt = "created_at"
+    }
+}
+
 class PostService {
     // Removed hardcoded URL and Key string properties
 
@@ -110,6 +137,52 @@ class PostService {
             throw error
         }
     }
+
+    /// Fetches posts from the Supabase database.
+    /// - Returns: An array of `Post` objects.
+    /// - Throws: An error if fetching or decoding fails.
+    func fetchPosts() async throws -> [Post] {
+        do {
+            print("Attempting to fetch posts...")
+            let response: [Post] = try await client
+                .from("posts")
+                .select() // Selects all columns by default. Specify columns if needed: .select("id, content, user_id")
+                // You can add ordering, e.g., .order("created_at", ascending: false)
+                // You can add filtering, e.g., .eq("user_id", value: someUserId)
+                // You can add pagination, e.g., .range(from: 0, to: 19) // fetches first 20 posts
+                .execute()
+                .value // Decodes the response into the specified type ([Post])
+            
+            print("Successfully fetched \(response.count) posts.")
+            return response
+        } catch {
+            print("Failed to fetch posts: \(error)")
+            throw error
+        }
+    }
+
+    /// Fetches posts from the Supabase database for a specific user.
+    /// - Parameter userId: The ID of the user whose posts are to be fetched.
+    /// - Returns: An array of `Post` objects belonging to the user.
+    /// - Throws: An error if fetching or decoding fails.
+    func fetchPosts(forUserId userId: String) async throws -> [Post] {
+        do {
+            print("Attempting to fetch posts for user ID: \(userId)...")
+            let response: [Post] = try await client
+                .from("posts")
+                .select() // Selects all columns
+                .eq("user_id", value: userId) // Filter by user_id
+                .order("created_at", ascending: false) // Optional: order by creation date, newest first
+                .execute()
+                .value
+            
+            print("Successfully fetched \(response.count) posts for user ID: \(userId).")
+            return response
+        } catch {
+            print("Failed to fetch posts for user ID \(userId): \(error)")
+            throw error
+        }
+    }
 }
 
 // Example Usage (you would call this from your UI or another part of your app):
@@ -152,5 +225,35 @@ func S_AMPLE_create_new_post() {
     // } else {
     //     print("Sample image not found, skipping media post example.")
     // }
+}
+
+func S_AMPLE_fetch_all_posts() {
+    let postService = PostService()
+    Task {
+        do {
+            let posts = try await postService.fetchPosts()
+            print("Fetched \(posts.count) posts:")
+            for post in posts {
+                print("- Post ID: \(post.id), Content: \(post.content), Created At: \(post.createdAt)")
+            }
+        } catch {
+            print("Error fetching posts: \(error)")
+        }
+    }
+}
+
+func S_AMPLE_fetch_user_posts(userId: String) {
+    let postService = PostService()
+    Task {
+        do {
+            let posts = try await postService.fetchPosts(forUserId: userId)
+            print("Fetched \(posts.count) posts for user \(userId):")
+            for post in posts {
+                print("- Post ID: \(post.id), Content: \(post.content)")
+            }
+        } catch {
+            print("Error fetching user posts: \(error)")
+        }
+    }
 }
 */
