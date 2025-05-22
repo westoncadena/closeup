@@ -1,27 +1,29 @@
 import Supabase
 import Foundation
 import UIKit // For UIImage
+import Combine // Import Combine for ObservableObject
 
 // Define the type of post
 enum PostType: String, Encodable {
-    case thoughts = "Thoughts"
-    case prompt = "Prompt"
-    case thread = "Thread"
+    case journal = "journal"
+    case prompt = "prompt"
+    case thread = "thread"
 }
 
 // Define the structure for the post data to be sent to Supabase
 struct PostPayload: Encodable {
-    let user_id: String
-    let type: String
+    let user_id: String // Assuming Supabase client handles String to UUID conversion if needed
+    let post_type: String
     let content: String
+    let audience: String
     let media_url: String?
-    // Supabase typically handles created_at automatically if the column is configured with a default value like now()
-    // let created_at: String // You might not need to send this explicitly
+    // created_at will be handled by Supabase (default now())
+    // prompt_id and thread_id can be added later if needed
 }
 
 // Post struct has been moved to Models/Post.swift
 
-class PostService {
+class PostService: ObservableObject { // Conform to ObservableObject
     // Removed hardcoded URL and Key string properties
 
     private var client: SupabaseClient
@@ -43,14 +45,16 @@ class PostService {
     /// Creates a post, optionally uploading media first.
     /// - Parameters:
     ///   - userId: The ID of the user creating the post.
-    ///   - type: The type of the post (e.g., thoughts, prompt).
+    ///   - postType: The type of the post (e.g., thoughts, prompt).
     ///   - content: The textual content of the post.
+    ///   - audience: The audience for the post.
     ///   - media: An optional UIImage to be uploaded as media for the post.
     /// - Throws: An error if the post creation or media upload fails.
     func createPost(
         userId: String,
-        type: PostType,
+        postType: PostType,
         content: String,
+        audience: String,
         media: UIImage? = nil
     ) async throws {
         var mediaURL: String? = nil
@@ -93,10 +97,10 @@ class PostService {
         // 2. Prepare the post payload
         let postPayload = PostPayload(
             user_id: userId,
-            type: type.rawValue,
+            post_type: postType.rawValue,
             content: content,
+            audience: audience,
             media_url: mediaURL
-            // created_at is often handled by the database (e.g., default value now())
         )
 
         // 3. Insert the post into the "posts" table
