@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CreatePostMenuView: View {
+struct CreateMenuView: View {
     // Fake data for menu options
     struct MenuOption: Identifiable {
         let id = UUID()
@@ -101,8 +101,8 @@ struct CreatePostMenuView: View {
     }
 }
 
-struct CreatePostMenuView_Previews: PreviewProvider {
+struct CreateMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        CreatePostMenuView()
+        CreateMenuView()
     }
 }
