@@ -11,93 +11,66 @@ struct CreateMenuView: View {
     
     private let menuOptions: [MenuOption] = [
         MenuOption(
-            title: "Thoughts",
-            description: "Just write whatever’s on your mind — no structure, no pressure.",
-            iconName: "lightbulb"
+            title: "Journal",
+            description: "Just write whatever's on your mind — no structure, no pressure.",
+            iconName: "book.pages"
         ),
         MenuOption(
             title: "Prompt",
-            description: "A little question to get you started if you’re not sure what to write.",
-            iconName: "questionmark.circle"
+            description: "A little question to get you started if you're not sure what to write.",
+            iconName: "questionmark.bubble"
         ),
         MenuOption(
             title: "Thread",
             description: "A spot to keep track of something specific — like a hobby, habit, or project.",
-            iconName: "sparkles"
+            iconName: "target"
         )
     ]
     
     var body: some View {
-        VStack(spacing: 50) {
-            // Simulated status bar
-            HStack {
-                Text("09:52 AM")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                Spacer()
-                HStack(spacing: 4) {
-                    Image(systemName: "wifi")
-                    Image(systemName: "battery.100")
-                }
-                .foregroundColor(.gray)
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-            
-            Spacer().frame(height: 8)
-            
-            // Menu options
-            ForEach(menuOptions.indices, id: \.self) { idx in
-                let option = menuOptions[idx]
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(option.title)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                        Image(systemName: option.iconName)
-                            .foregroundColor(.primary)
+        NavigationView {
+            GeometryReader { geometry in
+                VStack {
+                    Spacer()
+                    
+                    // Menu options
+                    ForEach(menuOptions.indices, id: \.self) { idx in
+                        let option = menuOptions[idx]
+                        NavigationLink(destination: Text("Create \(option.title)")) { // Placeholder destination
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(option.title)
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                    Image(systemName: option.iconName)
+                                        .foregroundColor(.primary)
+                                }
+                                Text(option.description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .lineLimit(nil)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 16)
+                        }
+                        .buttonStyle(PlainButtonStyle()) // This removes the default button styling
+                        
+                        if idx < menuOptions.count - 1 {
+                            Spacer()
+                            Divider()
+                                .padding(.horizontal, 24)
+                            Spacer()
+                        }
                     }
-                    Text(option.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    
+                    Spacer()
                 }
-                .padding()
-                
-                if idx < menuOptions.count - 1 {
-                    Divider()
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            
-            Spacer()
-            
-            // Bottom navigation bar
-            HStack {
-                Spacer()
-                VStack {
-                    Image(systemName: "person.2")
-                    // Home
-                }
-                Spacer()
-                VStack {
-                    Image(systemName: "square.and.pencil")
-                        .foregroundColor(.blue)
-                    // Create (current)
-                }
-                Spacer()
-                VStack {
-                    Image(systemName: "person.crop.circle")
-                    // Profile
-                }
-                Spacer()
-            }
-            .padding(.vertical, 10)
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(radius: 2)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .background(Color.white.ignoresSafeArea())
         }
-        .background(Color.white.ignoresSafeArea())
     }
 }
 
