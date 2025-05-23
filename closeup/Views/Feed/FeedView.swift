@@ -53,7 +53,7 @@ struct FeedView: View {
                     ScrollView {
                         LazyVStack(spacing: 15) {
                             ForEach(posts) { post in
-                                NavigationLink(destination: PostDetailView(post: post)) {
+                                NavigationLink(destination: PostView(post: post)) {
                                     PostCardView(post: post)
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -67,9 +67,7 @@ struct FeedView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        print("Search button tapped")
-                    }) {
+                    NavigationLink(destination: SearchView()) {
                         Image(systemName: "magnifyingglass")
                     }
                 }
@@ -163,11 +161,15 @@ struct PostCardView: View {
 
             Text(post.content).font(.body)
 
-            if let mediaUrlString = post.mediaUrl, let _ = URL(string: mediaUrlString), post.mediaType == "image" {
-                // AsyncImage to load image from URL (iOS 15+)
-                // Fallback for older versions would be needed
+            // Updated to handle mediaUrls and mediaTypes arrays
+            // This example displays the first image if available.
+            if let mediaUrls = post.mediaUrls, !mediaUrls.isEmpty,
+               let mediaTypes = post.mediaTypes, mediaTypes.count == mediaUrls.count,
+               let firstUrlString = mediaUrls.first, let _ = URL(string: firstUrlString),
+               let firstType = mediaTypes.first, firstType == "image" {
+
                 if #available(iOS 15.0, *) {
-                    AsyncImage(url: URL(string: mediaUrlString)) {
+                    AsyncImage(url: URL(string: firstUrlString)) {
                         $0.resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(height: 200)
@@ -206,14 +208,6 @@ struct PostCardView: View {
         .background(Color(UIColor.systemBackground))
         .cornerRadius(10)
         .shadow(radius: 3)
-    }
-}
-
-struct PostDetailView: View { // Renamed from PostView to PostDetailView
-    let post: Post
-    var body: some View {
-        Text("Detail view for post: \(post.content.prefix(50))")
-            .navigationTitle("Post Details")
     }
 }
 

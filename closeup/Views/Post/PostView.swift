@@ -18,6 +18,11 @@ struct Post: Identifiable {
 }
 */
 
+// The local User and Comment structs will be adjusted or replaced.
+// For consistency, it's better to use UserProfile directly.
+
+// REMOVED Comment struct definition from here - it now uses Models/Comment.swift
+
 struct PostView: View {
     // Environment variable to dismiss the view (for the back button)
     @Environment(\.dismiss) var dismiss
@@ -25,49 +30,81 @@ struct PostView: View {
     let post: Post // This will now refer to the Post struct from PostService.swift
     @State private var showCommentsSheet: Bool = false
     
-    // Mock data for UI elements not directly in PostService.Post for now
-    @State private var displayAuthor: User // For preview and until User fetching is implemented
+    // State for fetched data
+    @State private var authorProfile: UserProfile? = nil
+    @State private var isLoadingAuthor: Bool = false
+    
+    // For now, likes and comments will still use mock data structure but with UserProfile
     @State private var displayLikes: Int = 0
-    @State private var displayComments: [Comment] = []
+    @State private var displayComments: [Comment] = [] // This will be array of new Comment struct
 
-    // Initializer to help with preview and bridge the gap
-    init(post: Post, mockAuthor: User? = nil, mockLikes: Int = 0, mockComments: [Comment] = []) {
+    // Services
+    private let userService = UserService()
+    // private let commentService = CommentService() // Future
+    // private let likeService = LikeService()    // Future
+
+    // Updated initializer
+    init(post: Post, initialMockLikes: Int = 0, initialMockComments: [Comment] = []) {
         self.post = post
-        // For live data, you'd fetch User details based on post.userId
-        // For preview, we pass it in.
-        self._displayAuthor = State(initialValue: mockAuthor ?? User(id: UUID(), name: "Unknown User", profileImageName: "person.fill"))
-        self._displayLikes = State(initialValue: mockLikes)
-        self._displayComments = State(initialValue: mockComments)
+        self._displayLikes = State(initialValue: initialMockLikes)
+        self._displayComments = State(initialValue: initialMockComments)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // MARK: - Author Information
-                HStack {
-                    Image(systemName: displayAuthor.profileImageName) // Using displayAuthor
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
-                        .padding(.trailing, 8)
-                    Text(displayAuthor.name) // Using displayAuthor
-                        .font(.headline)
-                    Spacer()
-                    Text(post.type.capitalized) // Using post.type from PostService.Post (e.g. "thoughts" -> "Thoughts")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                if isLoadingAuthor {
+                    HStack {
+                        ProgressView()
+                        Text("Loading author...")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }.padding(.horizontal)
+                } else if let author = authorProfile {
+                    HStack {
+                        if let profilePicUrlString = author.profilePicture, let url = URL(string: profilePicUrlString) {
+                            AsyncImage(url: url) {
+                                $0.resizable().aspectRatio(contentMode: .fill).frame(width: 40, height: 40).clipShape(Circle())
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill").resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                            }
+                        } else {
+                            Image(systemName: "person.circle.fill")
+                                .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                        }
+                        Text(author.fullName)
+                            .font(.headline)
+                        Spacer()
+                        Text(post.type.capitalized)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.horizontal)
+                } else {
+                    HStack {
+                        Image(systemName: "person.circle.fill")
+                            .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                        Text("Author not available")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }.padding(.horizontal)
                 }
-                .padding(.horizontal)
 
                 // MARK: - Post Content
                 Text(post.content)
                     .font(.body)
                     .padding(.horizontal)
 
-                // MARK: - Media Carousel (Adapted for single mediaUrl)
-                if let mediaUrlString = post.mediaUrl, let url = URL(string: mediaUrlString) {
-                    // For now, just showing the single image if available
+                // MARK: - Media Carousel (Adapted for array of mediaUrls)
+                // This example displays the first image if available.
+                if let mediaUrls = post.mediaUrls, !mediaUrls.isEmpty,
+                   let mediaTypes = post.mediaTypes, mediaTypes.count == mediaUrls.count,
+                   let firstUrlString = mediaUrls.first, let url = URL(string: firstUrlString),
+                   let firstType = mediaTypes.first, firstType.lowercased() == "image" {
+                    
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -92,15 +129,15 @@ struct PostView: View {
                         }
                     }
                     .padding(.horizontal)
-                } else if post.mediaUrl != nil {
-                    // Case where mediaUrl string is invalid but not nil
+                } else if let mediaUrls = post.mediaUrls, !mediaUrls.isEmpty {
+                    // Case where mediaUrls exist but might not be an image or URL is invalid for the first item
                     Image(systemName: "photo.on.rectangle.angled")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 250)
                         .foregroundColor(.gray)
                         .padding(.horizontal)
-                        .overlay(Text("Invalid Media URL").foregroundColor(.red))
+                        .overlay(Text("Media preview not available").foregroundColor(.white))
                 }
 
 
@@ -151,14 +188,38 @@ struct PostView: View {
                 CommentsListView(comments: displayComments) // Using displayComments
             }
             .onAppear {
-                // Here you would typically fetch the author details, likes, and comments
-                // For example:
-                // fetchUserDetails(userId: post.userId)
-                // fetchLikesCount(postId: post.id)
-                // fetchComments(postId: post.id)
-                // For now, they are set via initializer or use default mock values.
+                fetchPostDetails()
             }
         }
+    }
+
+    func fetchPostDetails() {
+        print("PostView appeared. Post ID: \(post.id)")
+        print("Media URLs: \(post.mediaUrls ?? [])")
+        print("Media Types: \(post.mediaTypes ?? [])")
+
+        // Fetch Author
+        if let authorId = post.userId {
+            isLoadingAuthor = true
+            Task {
+                do {
+                    authorProfile = try await userService.getUser(userId: authorId)
+                } catch {
+                    print("Error fetching author profile: \(error)")
+                    // authorProfile remains nil, UI will show placeholder
+                }
+                isLoadingAuthor = false
+            }
+        } else {
+            print("Post does not have a userId to fetch author.")
+            // authorProfile remains nil
+        }
+
+        // TODO: Fetch Likes (e.g., from a LikeService)
+        // self.displayLikes = await likeService.fetchLikesCount(forPostId: post.id)
+        
+        // TODO: Fetch Comments (e.g., from a CommentService)
+        // self.displayComments = await commentService.fetchComments(forPostId: post.id)
     }
 }
 
@@ -168,14 +229,19 @@ struct CommentRow: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            Image(systemName: comment.user.profileImageName) // Placeholder
-                .resizable()
-                .scaledToFit()
-                .frame(width: 30, height: 30)
-                .clipShape(Circle())
+            if let profilePicUrlString = comment.user.profilePicture, let url = URL(string: profilePicUrlString) {
+                AsyncImage(url: url) {
+                    $0.resizable().aspectRatio(contentMode: .fill).frame(width: 30, height: 30).clipShape(Circle())
+                } placeholder: {
+                    Image(systemName: "person.circle.fill").resizable().scaledToFit().frame(width: 30, height: 30).clipShape(Circle()).foregroundColor(.gray)
+                }
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .resizable().scaledToFit().frame(width: 30, height: 30).clipShape(Circle()).foregroundColor(.gray)
+            }
             
             VStack(alignment: .leading) {
-                Text(comment.user.name)
+                Text(comment.user.fullName) // Uses UserProfile.fullName
                     .font(.caption.bold())
                 Text(comment.text)
                     .font(.caption)
@@ -184,8 +250,7 @@ struct CommentRow: View {
             HStack(spacing: 15) {
                 Button { /* Like comment action */ } label: { Image(systemName: "heart") }
                 Button { /* Reply to comment action */ } label: { Image(systemName: "arrowshape.turn.up.left") }
-            }
-            .foregroundColor(.gray)
+            }.foregroundColor(.gray)
         }
     }
 }
@@ -213,32 +278,31 @@ struct CommentsListView: View {
 
 // MARK: - Preview
 #Preview {
-    // Mock Users
-    let eunsoo = User(id: UUID(), name: "Eunsoo Yeo", profileImageName: "person.fill")
-    let weston = User(id: UUID(), name: "Weston Cadena", profileImageName: "person.crop.circle.fill")
-    let mckenzie = User(id: UUID(), name: "Mckenzie Stanley", profileImageName: "person.crop.square.fill")
+    // Mock UserProfiles for the preview
+    let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
+    let westonProfile = UserProfile(id: UUID(), username: "weston_c", firstName: "Weston", lastName: "Cadena", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
+    let mckenzieProfile = UserProfile(id: UUID(), username: "mckenzie_s", firstName: "Mckenzie", lastName: "Stanley", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
 
-    // Mock Comments
-    let comment1 = Comment(id: UUID(), user: weston, text: "Cool stuff")
-    let comment2 = Comment(id: UUID(), user: mckenzie, text: "AMAZE!!!")
-    let comment3 = Comment(id: UUID(), user: eunsoo, text: "Thanks for the feedback everyone! Really appreciate it.")
+    // Mock Comments using UserProfile
+    let comment1 = Comment(id: UUID(), user: westonProfile, text: "Cool stuff")
+    let comment2 = Comment(id: UUID(), user: mckenzieProfile, text: "AMAZE!!!")
+    let comment3 = Comment(id: UUID(), user: eunsooProfile, text: "Thanks for the feedback everyone! Really appreciate it.")
 
-
-    // Mock Post
     let mockPost = Post(
         id: UUID(),
-        userId: UUID(), // This is from PostService.Post now
+        userId: eunsooProfile.id, // Assigning a userId for the author for preview fetching logic
         content: "I am building this really cool app with Weston. I hope this becomes really helpful for people. The app will help people keep in touch more intentionally!",
-        mediaUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80", // Single URL
-        mediaType: "image/jpeg",
-        audience: "friends", // Field from PostService.Post
-        type: "thoughts",    // Field from PostService.Post
+        mediaUrls: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80"],
+        mediaTypes: ["image/jpeg"],
+        audience: "friends",
+        type: "thoughts",
         promptId: nil,
         threadId: nil,
         createdAt: Date()
     )
     
-    PostView(post: mockPost, mockAuthor: eunsoo, mockLikes: 10, mockComments: [comment1, comment2, comment3])
+    // PostView init now only takes post, initialMockLikes, initialMockComments
+    PostView(post: mockPost, initialMockLikes: 10, initialMockComments: [comment1, comment2, comment3])
 }
 
 

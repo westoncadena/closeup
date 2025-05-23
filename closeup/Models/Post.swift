@@ -5,8 +5,8 @@ struct Post: Decodable, Identifiable {
     let id: UUID // Maps from post_id
     let userId: UUID? // Maps from user_id, which is nullable UUID
     let content: String
-    let mediaUrl: String?
-    let mediaType: String?
+    let mediaUrls: [String]? // Changed from mediaUrl: String?
+    let mediaTypes: [String]? // Changed from mediaType: String?
     let audience: String
     let type: String // Maps from post_type
     let promptId: UUID?
@@ -17,8 +17,8 @@ struct Post: Decodable, Identifiable {
         case id = "post_id"
         case userId = "user_id"
         case content
-        case mediaUrl = "media_url"
-        case mediaType = "media_type"
+        case mediaUrls = "media_urls" // Changed from media_url
+        case mediaTypes = "media_types" // Changed from media_type
         case audience
         case type = "post_type"
         case promptId = "prompt_id"
