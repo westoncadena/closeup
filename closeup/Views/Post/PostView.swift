@@ -63,7 +63,7 @@ struct PostView: View {
                         Spacer()
                     }.padding(.horizontal)
                 } else if let author = authorProfile {
-                    HStack {
+                HStack {
                         if let profilePicUrlString = author.profilePicture, let url = URL(string: profilePicUrlString) {
                             AsyncImage(url: url) {
                                 $0.resizable().aspectRatio(contentMode: .fill).frame(width: 40, height: 40).clipShape(Circle())
@@ -75,13 +75,13 @@ struct PostView: View {
                                 .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
                         }
                         Text(author.fullName)
-                            .font(.headline)
-                        Spacer()
+                        .font(.headline)
+                    Spacer()
                         Text(post.type.capitalized)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.horizontal)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal)
                 } else {
                     HStack {
                         Image(systemName: "person.circle.fill")
