@@ -13,11 +13,21 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            FeedView()
-                .tabItem {
-                    Label("Feed", systemImage: "list.bullet.rectangle.portrait")
-                }
-                .tag(Tab.feed)
+            if let currentUser = appUser { // Ensure appUser is not nil
+                FeedView(appUser: currentUser)
+                    .tabItem {
+                        Label("Feed", systemImage: "list.bullet.rectangle.portrait")
+                    }
+                    .tag(Tab.feed)
+            } else {
+                // Placeholder or alternative view if appUser is nil
+                // For example, a login prompt or a loading view
+                Text("Loading user data or please log in...")
+                    .tabItem {
+                        Label("Feed", systemImage: "list.bullet.rectangle.portrait")
+                    }
+                    .tag(Tab.feed)
+            }
 
             CreateMenuView(appUser: appUser)
                 .tabItem {
