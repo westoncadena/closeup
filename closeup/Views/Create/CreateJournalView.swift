@@ -16,7 +16,6 @@ protocol FormattedTextViewDelegate {
 
 struct FormattedTextEditor: UIViewRepresentable {
     @Binding var attributedText: NSAttributedString
-    var placeholder: String
     var onImageInsertion: ((UIImage) -> Void)?
     var onTextViewCreated: ((UITextView) -> Void)?
     var onTextChanged: ((NSAttributedString) -> Void)?
@@ -90,14 +89,6 @@ struct FormattedTextEditor: UIViewRepresentable {
             uiView.attributedText = mutableAttr
             uiView.selectedRange = selectedRange
         }
-        
-        if attributedText.length == 0 && uiView.textColor != .placeholderText {
-            uiView.text = placeholder
-            uiView.textColor = .placeholderText
-            uiView.typingAttributes = createDefaultAttributes()
-        } else if uiView.textColor == .placeholderText && attributedText.length > 0 {
-            uiView.textColor = .label
-        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -130,58 +121,6 @@ struct FormattedTextEditor: UIViewRepresentable {
             super.init()
         }
         
-        func textViewDidBeginEditing(_ textView: UITextView) {
-            if textView.textColor == .placeholderText {
-                textView.text = ""
-                textView.textColor = .label
-            }
-            
-            // Ensure typing attributes have correct font size and paragraph style
-            var updatedAttributes = currentTypingAttributes
-            if let font = currentTypingAttributes[.font] as? UIFont {
-                updatedAttributes[.font] = font.withSize(defaultFontSize)
-            }
-            if currentTypingAttributes[.paragraphStyle] == nil {
-                let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = defaultLineSpacing
-                paragraphStyle.paragraphSpacing = defaultLineSpacing * 2
-                paragraphStyle.lineHeightMultiple = 1.2
-                updatedAttributes[.paragraphStyle] = paragraphStyle
-            }
-            
-            currentTypingAttributes = updatedAttributes
-            textView.typingAttributes = updatedAttributes
-        }
-        
-        func textViewDidChange(_ textView: UITextView) {
-            onTextChanged?(textView.attributedText)
-        }
-        
-        func textViewDidEndEditing(_ textView: UITextView) {
-            if textView.text.isEmpty {
-                textView.text = "Write about anything"
-                textView.textColor = .placeholderText
-            }
-        }
-        
-        func updateTypingAttributes(_ attributes: [NSAttributedString.Key: Any], for textView: UITextView) {
-            // Preserve paragraph style while updating other attributes
-            var newAttributes = attributes
-            if let font = attributes[.font] as? UIFont {
-                newAttributes[.font] = font.withSize(defaultFontSize)
-            }
-            if attributes[.paragraphStyle] == nil {
-                let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = defaultLineSpacing
-                paragraphStyle.paragraphSpacing = defaultLineSpacing * 2
-                paragraphStyle.lineHeightMultiple = 1.2
-                newAttributes[.paragraphStyle] = paragraphStyle
-            }
-            
-            currentTypingAttributes = newAttributes
-            textView.typingAttributes = newAttributes
-        }
-        
         func textViewDidChangeSelection(_ textView: UITextView) {
             // Get attributes at cursor position or selection
             let attributes: [NSAttributedString.Key: Any]
@@ -200,6 +139,15 @@ struct FormattedTextEditor: UIViewRepresentable {
             }
             
             onSelectionChanged?(attributes)
+        }
+        
+        func textViewDidChange(_ textView: UITextView) {
+            onTextChanged?(textView.attributedText)
+        }
+        
+        func updateTypingAttributes(_ attributes: [NSAttributedString.Key: Any], for textView: UITextView) {
+            currentTypingAttributes = attributes
+            textView.typingAttributes = attributes
         }
     }
 }
@@ -441,7 +389,6 @@ public struct CreateJournalView: View {
                     ScrollView {
                         FormattedTextEditor(
                             attributedText: $attributedContent,
-                            placeholder: "Write about anything",
                             onImageInsertion: { image in
                                 insertImage(image)
                             },
