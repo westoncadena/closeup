@@ -11,6 +11,7 @@ struct CreateMenuView: View {
     
     let appUser: AppUser?
     @State private var showCreateJournalView = false
+    @State private var showCreatePromptView = false
     
     private let menuOptions: [MenuOption] = [
         MenuOption(
@@ -46,6 +47,12 @@ struct CreateMenuView: View {
                                 }) {
                                     menuOptionView(for: option)
                                 }
+                            } else if option.title == "Prompt" {
+                                Button(action: {
+                                    showCreatePromptView = true
+                                }) {
+                                    menuOptionView(for: option)
+                                }
                             } else {
                                 NavigationLink(destination: Text("Create \(option.title)")) {
                                     menuOptionView(for: option)
@@ -72,32 +79,35 @@ struct CreateMenuView: View {
                     CreateJournalView(appUser: user)
                 }
             }
+            .fullScreenCover(isPresented: $showCreatePromptView) {
+                if let user = appUser {
+                    CreatePromptView(appUser: user)
+                }
+            }
         }
     }
     
+    @ViewBuilder
     private func menuOptionView(for option: MenuOption) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(option.title)
-                    .font(.title3)
-                    .fontWeight(.semibold)
                 Image(systemName: option.iconName)
-                    .foregroundColor(.primary)
+                    .font(.title2)
+                Text(option.title)
+                    .font(.title2)
+                    .fontWeight(.medium)
             }
             Text(option.description)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.gray)
                 .fixedSize(horizontal: false, vertical: true)
-                .lineLimit(nil)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding()
+        .background(Color(UIColor.systemBackground))
     }
 }
 
-struct CreateMenuView_Previews: PreviewProvider {
-    static var previews: some View {
-        CreateMenuView(appUser: AppUser(uid: "preview-uid", email: "preview@example.com"))
-    }
+#Preview {
+    CreateMenuView(appUser: AppUser(uid: "preview-uid", email: "preview@example.com"))
 }

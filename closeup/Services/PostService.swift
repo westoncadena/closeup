@@ -31,14 +31,16 @@ private struct PostPayload: Encodable {
     let audience: String
     let media_urls: [String]?
     let media_types: [String]?
+    let prompt_id: UUID?
     
-    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?) {
+    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?) {
         self.user_id = user_id
         self.post_type = post_type
         self.content = content
         self.audience = DatabaseAudience.convert(audience)
         self.media_urls = media_urls
         self.media_types = media_types
+        self.prompt_id = prompt_id
     }
 }
 
@@ -68,13 +70,15 @@ public class PostService: ObservableObject {
     ///   - content: The textual content of the post.
     ///   - audience: The audience for the post.
     ///   - media: An array of UIImages to be uploaded as media for the post.
+    ///   - prompt_id: The ID of the prompt associated with the post.
     /// - Throws: An error if the post creation or media upload fails.
     public func createPost(
         user_id: String,
         post_type: PostType,
         content: String,
         audience: String,
-        media: [UIImage] = []
+        media: [UIImage] = [],
+        prompt_id: UUID? = nil
     ) async throws {
         var media_urls: [String] = []
         var media_types: [String] = []
@@ -118,7 +122,8 @@ public class PostService: ObservableObject {
             content: content,
             audience: audience,
             media_urls: media_urls.isEmpty ? nil : media_urls,
-            media_types: media_types.isEmpty ? nil : media_types
+            media_types: media_types.isEmpty ? nil : media_types,
+            prompt_id: prompt_id
         )
 
         // 3. Insert the post into the "posts" table
