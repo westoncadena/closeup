@@ -4,7 +4,7 @@ import UIKit // For UIImage
 import Combine // Import Combine for ObservableObject
 
 // Define the type of post
-enum PostType: String, Encodable {
+public enum PostType: String, Encodable {
     case journal = "journal"
     case prompt = "prompt"
     case thread = "thread"
@@ -24,32 +24,30 @@ private enum DatabaseAudience {
 }
 
 // Define the structure for the post data to be sent to Supabase
-struct PostPayload: Encodable {
+private struct PostPayload: Encodable {
     let user_id: String
     let post_type: String
     let content: String
     let audience: String
-    let media_url: String?
-    let media_type: String?
+    let media_urls: [String]?
+    let media_types: [String]?
     
-    init(user_id: String, post_type: String, content: String, audience: String, media_url: String?, media_type: String?) {
+    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?) {
         self.user_id = user_id
         self.post_type = post_type
         self.content = content
         self.audience = DatabaseAudience.convert(audience)
-        self.media_url = media_url
-        self.media_type = media_type
+        self.media_urls = media_urls
+        self.media_types = media_types
     }
 }
 
 // Post struct has been moved to Models/Post.swift
 
-class PostService: ObservableObject { // Conform to ObservableObject
-    // Removed hardcoded URL and Key string properties
-
+public class PostService: ObservableObject {
     private var client: SupabaseClient
 
-    init() {
+    public init() {
         // Read Supabase credentials from Info.plist
         guard let infoPlistPath = Bundle.main.path(forResource: "Info", ofType: "plist"),
               let infoPlistDict = NSDictionary(contentsOfFile: infoPlistPath),
@@ -69,45 +67,47 @@ class PostService: ObservableObject { // Conform to ObservableObject
     ///   - postType: The type of the post (e.g., thoughts, prompt).
     ///   - content: The textual content of the post.
     ///   - audience: The audience for the post.
-    ///   - media: An optional UIImage to be uploaded as media for the post.
+    ///   - media: An array of UIImages to be uploaded as media for the post.
     /// - Throws: An error if the post creation or media upload fails.
-    func createPost(
+    public func createPost(
         user_id: String,
         post_type: PostType,
         content: String,
         audience: String,
-        media: UIImage? = nil
+        media: [UIImage] = []
     ) async throws {
-        var media_url: String? = nil
-        var media_type: String? = nil
+        var media_urls: [String] = []
+        var media_types: [String] = []
 
-        // 1. If media exists, try to upload it to Supabase Storage
-        if let imageToUpload = media, let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
-            let fileName = "\(UUID().uuidString).jpg"
-            let storagePath = "posts_media/\(user_id)/\(fileName)"
+        // 1. If media exists, try to upload each image to Supabase Storage
+        for imageToUpload in media {
+            if let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
+                let fileName = "\(UUID().uuidString).jpg"
+                let storagePath = "posts_media/\(user_id)/\(fileName)"
 
-            do {
-                print("Attempting to upload media to path: \(storagePath)")
-                // Upload the file
-                _ = try await client.storage
-                    .from("media")
-                    .upload(storagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
-                
-                print("Media uploaded successfully.")
+                do {
+                    print("Attempting to upload media to path: \(storagePath)")
+                    // Upload the file
+                    _ = try await client.storage
+                        .from("media")
+                        .upload(storagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
+                    
+                    print("Media uploaded successfully.")
 
-                // Get the public URL for the uploaded file
-                let response = try client.storage
-                    .from("media")
-                    .getPublicURL(path: storagePath)
-                
-                media_url = response.absoluteString
-                media_type = "image/jpeg"
-                print("Public media URL: \(media_url ?? "Not available")")
+                    // Get the public URL for the uploaded file
+                    let response = try client.storage
+                        .from("media")
+                        .getPublicURL(path: storagePath)
+                    
+                    media_urls.append(response.absoluteString)
+                    media_types.append("image/jpeg")
+                    print("Public media URL: \(response.absoluteString)")
 
-            } catch {
-                print("Media upload failed: \(error)")
-                // Continue with post creation without media
-                print("Continuing with post creation without media")
+                } catch {
+                    print("Media upload failed: \(error)")
+                    // Continue with next image
+                    print("Continuing with next image")
+                }
             }
         }
 
@@ -117,8 +117,8 @@ class PostService: ObservableObject { // Conform to ObservableObject
             post_type: post_type.rawValue,
             content: content,
             audience: audience,
-            media_url: media_url,
-            media_type: media_type
+            media_urls: media_urls.isEmpty ? nil : media_urls,
+            media_types: media_types.isEmpty ? nil : media_types
         )
 
         // 3. Insert the post into the "posts" table
@@ -138,7 +138,7 @@ class PostService: ObservableObject { // Conform to ObservableObject
     /// Fetches posts from the Supabase database.
     /// - Returns: An array of `Post` objects.
     /// - Throws: An error if fetching or decoding fails.
-    func fetchPosts() async throws -> [Post] {
+    public func fetchPosts() async throws -> [Post] {
         do {
             print("Attempting to fetch posts...")
             let response: [Post] = try await client
@@ -162,7 +162,7 @@ class PostService: ObservableObject { // Conform to ObservableObject
     /// - Parameter userId: The ID of the user whose posts are to be fetched.
     /// - Returns: An array of `Post` objects belonging to the user.
     /// - Throws: An error if fetching or decoding fails.
-    func fetchPosts(forUserId user_id: String) async throws -> [Post] {
+    public func fetchPosts(forUserId user_id: String) async throws -> [Post] {
         do {
             print("Attempting to fetch posts for user ID: \(user_id)...")
             let response: [Post] = try await client
