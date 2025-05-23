@@ -145,20 +145,53 @@ class PostService: ObservableObject { // Conform to ObservableObject
     /// - Returns: An array of `Post` objects belonging to the user.
     /// - Throws: An error if fetching or decoding fails.
     func fetchPosts(forUserId userId: String) async throws -> [Post] {
+        try await fetchPosts(forUserId: UUID(uuidString: userId) ?? UUID())
+    }
+
+    func fetchPosts(forUserId userId: UUID) async throws -> [Post] {
         do {
-            print("Attempting to fetch posts for user ID: \(userId)...")
+            print("Attempting to fetch posts for user ID: \(userId.uuidString)...")
             let response: [Post] = try await client
                 .from("posts")
                 .select() // Selects all columns
-                .eq("user_id", value: userId) // Filter by user_id
+                .eq("user_id", value: userId.uuidString) // Filter by user_id
                 .order("created_at", ascending: false) // Optional: order by creation date, newest first
                 .execute()
                 .value
             
-            print("Successfully fetched \(response.count) posts for user ID: \(userId).")
+            print("Successfully fetched \(response.count) posts for user ID: \(userId.uuidString).")
             return response
         } catch {
-            print("Failed to fetch posts for user ID \(userId): \(error)")
+            print("Failed to fetch posts for user ID \(userId.uuidString): \(error)")
+            throw error
+        }
+    }
+
+    /// Fetches posts from the Supabase database for a list of specific user IDs.
+    /// - Parameter userIds: An array of UUIDs of the users whose posts are to be fetched.
+    /// - Returns: An array of `Post` objects belonging to the users.
+    /// - Throws: An error if fetching or decoding fails.
+    func fetchPosts(forUserIds userIds: [UUID]) async throws -> [Post] {
+        guard !userIds.isEmpty else {
+            print("No user IDs provided, returning empty posts array.")
+            return []
+        }
+
+        do {
+            let userIdStrings = userIds.map { $0.uuidString }
+            print("Attempting to fetch posts for user IDs: \(userIdStrings.joined(separator: ", "))...")
+            let response: [Post] = try await client
+                .from("posts")
+                .select() // Selects all columns
+                .in("user_id", value: userIdStrings) // Filter by user_id in the list
+                .order("created_at", ascending: false) // Order by creation date, newest first
+                .execute()
+                .value
+            
+            print("Successfully fetched \(response.count) posts for the provided user IDs.")
+            return response
+        } catch {
+            print("Failed to fetch posts for user IDs: \(error)")
             throw error
         }
     }
