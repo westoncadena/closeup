@@ -35,14 +35,20 @@ struct MainTabView: View {
                 }
                 .tag(Tab.create)
 
-            // Ensure ProfileView is set up to receive an AppUser binding or object
-            // For now, assuming ProfileView might need the appUser binding.
-            // If ProfileView fetches its own data based on a userID, adjust accordingly.
-            ProfileView()
-                .tabItem {
-                    Label("Me", systemImage: "person.crop.circle.fill")
-                }
-                .tag(Tab.profile)
+            if let currentUser = appUser { // Ensure appUser is not nil for ProfileView
+                ProfileView(appUser: currentUser)
+                    .tabItem {
+                        Label("Profile", systemImage: "person.crop.circle.fill")
+                    }
+                    .tag(Tab.profile)
+            } else {
+                // Placeholder or alternative view if appUser is nil for Profile tab
+                Text("Please log in to see your profile.")
+                    .tabItem {
+                        Label("Profile", systemImage: "person.crop.circle.fill")
+                    }
+                    .tag(Tab.profile)
+            }
         }
         .onAppear {
             // This is a good place to ensure appUser is not nil if this view appears.

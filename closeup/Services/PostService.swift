@@ -210,7 +210,7 @@ public class PostService: ObservableObject {
             let response: [Post] = try await client
                 .from("posts")
                 .select() // Selects all columns
-                .in("user_id", value: userIdStrings) // Filter by user_id in the list
+                .in("user_id", values: userIdStrings) // Filter by user_id in the list
                 .order("created_at", ascending: false) // Order by creation date, newest first
                 .execute()
                 .value

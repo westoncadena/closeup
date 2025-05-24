@@ -266,7 +266,7 @@ public struct CreateJournalView: View {
         let currentFont = textView.typingAttributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: 18)
         
         // Create font descriptor with current traits
-        var fontDescriptor = currentFont.fontDescriptor
+        let fontDescriptor = currentFont.fontDescriptor
         var traits = fontDescriptor.symbolicTraits
         
         // Update traits based on state
