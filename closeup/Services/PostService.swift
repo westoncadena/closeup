@@ -4,31 +4,54 @@ import UIKit // For UIImage
 import Combine // Import Combine for ObservableObject
 
 // Define the type of post
-enum PostType: String, Encodable {
+public enum PostType: String, Encodable {
     case journal = "journal"
     case prompt = "prompt"
     case thread = "thread"
 }
 
+// Define valid database audience values
+private enum DatabaseAudience {
+    static func convert(_ displayAudience: String) -> String {
+        // Convert display-friendly audience values to database-accepted values
+        switch displayAudience.lowercased() {
+        case "personal": return "private"
+        case "friends": return "friends"
+        case "inner circle": return "circle"
+        default: return "private" // Default to private for safety
+        }
+    }
+}
+
 // Define the structure for the post data to be sent to Supabase
-struct PostPayload: Encodable {
-    let user_id: String // Assuming Supabase client handles String to UUID conversion if needed
+private struct PostPayload: Encodable {
+    let user_id: String
     let post_type: String
     let content: String
     let audience: String
-    let media_url: String?
-    // created_at will be handled by Supabase (default now())
-    // prompt_id and thread_id can be added later if needed
+    let media_urls: [String]?
+    let media_types: [String]?
+    let prompt_id: UUID?
+    let thread_id: UUID?
+    
+    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?, thread_id: UUID?) {
+        self.user_id = user_id
+        self.post_type = post_type
+        self.content = content
+        self.audience = DatabaseAudience.convert(audience)
+        self.media_urls = media_urls
+        self.media_types = media_types
+        self.prompt_id = prompt_id
+        self.thread_id = thread_id
+    }
 }
 
 // Post struct has been moved to Models/Post.swift
 
-class PostService: ObservableObject { // Conform to ObservableObject
-    // Removed hardcoded URL and Key string properties
-
+public class PostService: ObservableObject {
     private var client: SupabaseClient
 
-    init() {
+    public init() {
         // Read Supabase credentials from Info.plist
         guard let infoPlistPath = Bundle.main.path(forResource: "Info", ofType: "plist"),
               let infoPlistDict = NSDictionary(contentsOfFile: infoPlistPath),
@@ -48,68 +71,72 @@ class PostService: ObservableObject { // Conform to ObservableObject
     ///   - postType: The type of the post (e.g., thoughts, prompt).
     ///   - content: The textual content of the post.
     ///   - audience: The audience for the post.
-    ///   - media: An optional UIImage to be uploaded as media for the post.
+    ///   - media: An array of UIImages to be uploaded as media for the post.
+    ///   - prompt_id: The ID of the prompt associated with the post.
     /// - Throws: An error if the post creation or media upload fails.
-    func createPost(
-        userId: String,
-        postType: PostType,
+    public func createPost(
+        user_id: String,
+        post_type: PostType,
         content: String,
         audience: String,
-        media: UIImage? = nil
+        media: [UIImage] = [],
+        prompt_id: UUID? = nil,
+        thread_id: UUID? = nil
     ) async throws {
-        var mediaURL: String? = nil
+        var media_urls: [String] = []
+        var media_types: [String] = []
 
-        // 1. If media exists, upload it to Supabase Storage first
-        if let imageToUpload = media, let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
-            let fileName = "\(UUID().uuidString).jpg"
-            // Define a path like "posts_media/{userId}/{fileName}"
-            // Using a "posts_media" top-level folder, then user-specific subfolders.
-            let storagePath = "posts_media/\(userId)/\(fileName)"
+        // 1. If media exists, try to upload each image to Supabase Storage
+        for imageToUpload in media {
+            if let imageData = imageToUpload.jpegData(compressionQuality: 0.8) {
+                let fileName = "\(UUID().uuidString).jpg"
+                let storagePath = "posts_media/\(user_id)/\(fileName)"
 
-            do {
-                print("Attempting to upload media to path: \(storagePath)")
-                // Upload the file
-                _ = try await client.storage
-                    .from("media") // Assuming your bucket is named "media"
-                    .upload(storagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
-                
-                print("Media uploaded successfully.")
+                do {
+                    print("Attempting to upload media to path: \(storagePath)")
+                    // Upload the file
+                    _ = try await client.storage
+                        .from("media")
+                        .upload(storagePath, data: imageData, options: FileOptions(contentType: "image/jpeg"))
+                    
+                    print("Media uploaded successfully.")
 
-                // Get the public URL for the uploaded file
-                // Note: Ensure your bucket ("media") and the files within are configured for public access
-                // or use signed URLs if you need more restricted access.
-                let response = try client.storage
-                    .from("media")
-                    .getPublicURL(path: storagePath)
-                
-                mediaURL = response.absoluteString
-                print("Public media URL: \(mediaURL ?? "Not available")")
+                    // Get the public URL for the uploaded file
+                    let response = try client.storage
+                        .from("media")
+                        .getPublicURL(path: storagePath)
+                    
+                    media_urls.append(response.absoluteString)
+                    media_types.append("image/jpeg")
+                    print("Public media URL: \(response.absoluteString)")
 
-            } catch {
-                print("Media upload failed: \(error)")
-                // You might want to decide if a failed media upload should prevent post creation
-                // or if the post should be created without media.
-                // For this example, we'll throw the error.
-                throw error
+                } catch {
+                    print("Media upload failed: \(error)")
+                    // Continue with next image
+                    print("Continuing with next image")
+                }
             }
         }
 
         // 2. Prepare the post payload
         let postPayload = PostPayload(
-            user_id: userId,
-            post_type: postType.rawValue,
+            user_id: user_id,
+            post_type: post_type.rawValue,
             content: content,
             audience: audience,
-            media_url: mediaURL
+            media_urls: media_urls.isEmpty ? nil : media_urls,
+            media_types: media_types.isEmpty ? nil : media_types,
+            prompt_id: prompt_id,
+            thread_id: thread_id
         )
 
         // 3. Insert the post into the "posts" table
         do {
             print("Attempting to insert post: \(postPayload)")
             try await client
-                .from("posts") // Assuming your table is named "posts"
+                .from("posts")
                 .insert(postPayload)
-                .execute() // Essential for triggering the insert operation
+                .execute()
             print("Post inserted successfully.")
         } catch {
             print("Database insert failed: \(error)")
@@ -120,7 +147,7 @@ class PostService: ObservableObject { // Conform to ObservableObject
     /// Fetches posts from the Supabase database.
     /// - Returns: An array of `Post` objects.
     /// - Throws: An error if fetching or decoding fails.
-    func fetchPosts() async throws -> [Post] {
+    public func fetchPosts() async throws -> [Post] {
         do {
             print("Attempting to fetch posts...")
             let response: [Post] = try await client

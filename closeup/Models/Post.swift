@@ -1,19 +1,19 @@
 import Foundation
 
 // Define the structure for a Post when fetching from Supabase
-struct Post: Decodable, Identifiable {
-    let id: UUID // Maps from post_id
-    let userId: UUID? // Maps from user_id, which is nullable UUID
-    let content: String
-    let mediaUrls: [String]? // Changed from mediaUrl: String?
-    let mediaTypes: [String]? // Changed from mediaType: String?
-    let audience: String
-    let type: String // Maps from post_type
-    let promptId: UUID?
-    let threadId: UUID?
-    let createdAt: Date // Maps from created_at
+public struct Post: Decodable, Identifiable {
+    public let id: UUID // Maps from post_id
+    public let userId: UUID? // Maps from user_id, which is nullable UUID
+    public let content: String
+    public let mediaUrls: [String]? // Changed from mediaUrl: String?
+    public let mediaTypes: [String]? // Changed from mediaType: String?
+    public let audience: String
+    public let type: String // Maps from post_type
+    public let promptId: UUID?
+    public let threadId: UUID?
+    public let createdAt: Date // Maps from created_at
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case id = "post_id"
         case userId = "user_id"
         case content
@@ -24,5 +24,18 @@ struct Post: Decodable, Identifiable {
         case promptId = "prompt_id"
         case threadId = "thread_id"
         case createdAt = "created_at"
+    }
+
+    public init(id: UUID, userId: UUID?, content: String, mediaUrls: [String]?, mediaTypes: [String]?, audience: String, type: String, promptId: UUID?, threadId: UUID?, createdAt: Date) {
+        self.id = id
+        self.userId = userId
+        self.content = content
+        self.mediaUrls = mediaUrls
+        self.mediaTypes = mediaTypes
+        self.audience = audience
+        self.type = type
+        self.promptId = promptId
+        self.threadId = threadId
+        self.createdAt = createdAt
     }
 }
