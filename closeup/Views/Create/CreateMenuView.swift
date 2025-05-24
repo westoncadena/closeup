@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CreateMenuView: View {
-    // Fake data for menu options
+    // Menu option type
     struct MenuOption: Identifiable {
         let id = UUID()
         let title: String
@@ -9,9 +9,12 @@ struct CreateMenuView: View {
         let iconName: String
     }
     
-    let appUser: AppUser?
-    @State private var showCreateJournalView = false
-    @State private var showCreatePromptView = false
+    @Binding var appUser: AppUser?
+    
+    // Separate state for each view type
+    @State private var showJournalView = false
+    @State private var showPromptView = false
+    @State private var showThreadView = false
     
     private let menuOptions: [MenuOption] = [
         MenuOption(
@@ -32,57 +35,55 @@ struct CreateMenuView: View {
     ]
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
-                VStack {
-                    Spacer()
-                    
-                    // Menu options
-                    ForEach(menuOptions.indices, id: \.self) { idx in
-                        let option = menuOptions[idx]
-                        Group {
-                            if option.title == "Journal" {
-                                Button(action: {
-                                    showCreateJournalView = true
-                                }) {
-                                    menuOptionView(for: option)
-                                }
-                            } else if option.title == "Prompt" {
-                                Button(action: {
-                                    showCreatePromptView = true
-                                }) {
-                                    menuOptionView(for: option)
-                                }
-                            } else {
-                                NavigationLink(destination: Text("Create \(option.title)")) {
-                                    menuOptionView(for: option)
-                                }
-                            }
+        GeometryReader { geometry in
+            VStack {
+                Spacer()
+                
+                // Menu options
+                ForEach(menuOptions) { option in
+                    Button(action: {
+                        switch option.title {
+                        case "Journal":
+                            showJournalView = true
+                        case "Prompt":
+                            showPromptView = true
+                        case "Thread":
+                            showThreadView = true
+                        default:
+                            break
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        if idx < menuOptions.count - 1 {
-                            Spacer()
-                            Divider()
-                                .padding(.horizontal, 24)
-                            Spacer()
-                        }
+                    }) {
+                        menuOptionView(for: option)
                     }
+                    .buttonStyle(PlainButtonStyle())
                     
-                    Spacer()
+                    if option.id != menuOptions.last?.id {
+                        Spacer()
+                        Divider()
+                            .padding(.horizontal, 24)
+                        Spacer()
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                Spacer()
             }
-            .background(Color.white.ignoresSafeArea())
-            .fullScreenCover(isPresented: $showCreateJournalView) {
-                if let user = appUser {
-                    CreateJournalView(appUser: user)
-                }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(UIColor.systemBackground).ignoresSafeArea())
+        // Use separate fullScreenCover for each view type
+        .fullScreenCover(isPresented: $showJournalView) {
+            if let user = appUser {
+                CreateJournalView(appUser: user)
             }
-            .fullScreenCover(isPresented: $showCreatePromptView) {
-                if let user = appUser {
-                    CreatePromptView(appUser: user)
-                }
+        }
+        .fullScreenCover(isPresented: $showPromptView) {
+            if let user = appUser {
+                CreatePromptView(appUser: user)
+            }
+        }
+        .fullScreenCover(isPresented: $showThreadView) {
+            if let user = appUser {
+                CreateThreadView(appUser: user)
             }
         }
     }
@@ -109,5 +110,7 @@ struct CreateMenuView: View {
 }
 
 #Preview {
-    CreateMenuView(appUser: AppUser(uid: "preview-uid", email: "preview@example.com"))
+    NavigationView {
+        CreateMenuView(appUser: .constant(AppUser(uid: "123e4567-e89b-12d3-a456-426614174000", email: "preview@example.com")))
+    }
 }

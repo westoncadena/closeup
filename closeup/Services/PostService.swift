@@ -32,8 +32,9 @@ private struct PostPayload: Encodable {
     let media_urls: [String]?
     let media_types: [String]?
     let prompt_id: UUID?
+    let thread_id: UUID?
     
-    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?) {
+    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?, thread_id: UUID?) {
         self.user_id = user_id
         self.post_type = post_type
         self.content = content
@@ -41,6 +42,7 @@ private struct PostPayload: Encodable {
         self.media_urls = media_urls
         self.media_types = media_types
         self.prompt_id = prompt_id
+        self.thread_id = thread_id
     }
 }
 
@@ -78,7 +80,8 @@ public class PostService: ObservableObject {
         content: String,
         audience: String,
         media: [UIImage] = [],
-        prompt_id: UUID? = nil
+        prompt_id: UUID? = nil,
+        thread_id: UUID? = nil
     ) async throws {
         var media_urls: [String] = []
         var media_types: [String] = []
@@ -123,7 +126,8 @@ public class PostService: ObservableObject {
             audience: audience,
             media_urls: media_urls.isEmpty ? nil : media_urls,
             media_types: media_types.isEmpty ? nil : media_types,
-            prompt_id: prompt_id
+            prompt_id: prompt_id,
+            thread_id: thread_id
         )
 
         // 3. Insert the post into the "posts" table

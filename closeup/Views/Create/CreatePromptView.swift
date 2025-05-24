@@ -35,7 +35,7 @@ public struct CreatePromptView: View {
         guard let textView = textView else { return }
         
         // Create default attributes with proper spacing
-        var attributes = createDefaultAttributes()
+        let attributes = createDefaultAttributes()
         
         // Create attachment for the image
         let attachment = NSTextAttachment()
@@ -69,10 +69,11 @@ public struct CreatePromptView: View {
         
         // Insert a newline after the image with default attributes
         let newlineString = NSAttributedString(string: "\n", attributes: attributes)
-        textView.textStorage.insert(newlineString, at: textView.selectedRange.location + imageString.length)
+        textView.textStorage.insert(newlineString, at: textView.selectedRange.location + 1)
         
-        // Reset typing attributes to default
-        textView.typingAttributes = attributes
+        // Ensure consistent formatting after image insertion
+        let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+        textView.textStorage.addAttributes(attributes, range: fullRange)
         
         // Update the binding
         attributedContent = textView.attributedText
@@ -86,7 +87,8 @@ public struct CreatePromptView: View {
         
         return [
             .font: UIFont.systemFont(ofSize: 18),
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            .foregroundColor: UIColor.label
         ]
     }
     
@@ -106,32 +108,25 @@ public struct CreatePromptView: View {
         // Update traits based on state
         if isBold {
             traits.insert(.traitBold)
-        } else {
-            traits.remove(.traitBold)
         }
-        
         if isItalic {
             traits.insert(.traitItalic)
-        } else {
-            traits.remove(.traitItalic)
         }
         
-        // Create new font with updated traits while preserving size
+        // Create new font with updated traits
         if let newFontDescriptor = fontDescriptor.withSymbolicTraits(traits) {
-            let newFont = UIFont(descriptor: newFontDescriptor, size: currentFont.pointSize)
-            attributes[.font] = newFont
+            attributes[.font] = UIFont(descriptor: newFontDescriptor, size: 18)
         }
         
         // Handle underline separately
         if isUnderlined {
             attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
-        } else {
-            attributes[.underlineStyle] = nil
         }
         
+        // Apply attributes to typing attributes
         textView.typingAttributes = attributes
         
-        // Apply formatting to selected text if there is a selection
+        // Apply to selected text if there is a selection
         let selectedRange = textView.selectedRange
         if selectedRange.length > 0 {
             textView.textStorage.addAttributes(attributes, range: selectedRange)

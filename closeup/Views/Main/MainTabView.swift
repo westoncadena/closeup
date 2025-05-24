@@ -15,11 +15,11 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             FeedView()
                 .tabItem {
-                    Label("Feed", systemImage: "list.bullet.rectangle.portrait")
+                    Label("Share", systemImage: "list.bullet.rectangle.portrait")
                 }
                 .tag(Tab.feed)
 
-            CreateMenuView(appUser: appUser)
+            CreateMenuView(appUser: $appUser)
                 .tabItem {
                     Label("Create", systemImage: "plus.circle.fill")
                 }
@@ -30,7 +30,7 @@ struct MainTabView: View {
             // If ProfileView fetches its own data based on a userID, adjust accordingly.
             ProfileView()
                 .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle.fill")
+                    Label("Me", systemImage: "person.crop.circle.fill")
                 }
                 .tag(Tab.profile)
         }

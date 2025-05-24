@@ -190,13 +190,16 @@ public struct CreateJournalView: View {
     @State private var isQuoteField: Bool = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
     
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
     private let defaultFontSize: CGFloat = 18
     
     private func insertImage(_ image: UIImage) {
         guard let textView = textView else { return }
         
         // Create default attributes with proper spacing
-        var attributes = createDefaultAttributes()
+        let attributes = createDefaultAttributes()
         
         // Create attachment for the image
         let attachment = NSTextAttachment()
@@ -230,10 +233,11 @@ public struct CreateJournalView: View {
         
         // Insert a newline after the image with default attributes
         let newlineString = NSAttributedString(string: "\n", attributes: attributes)
-        textView.textStorage.insert(newlineString, at: textView.selectedRange.location + imageString.length)
+        textView.textStorage.insert(newlineString, at: textView.selectedRange.location + 1)
         
-        // Reset typing attributes to default
-        textView.typingAttributes = attributes
+        // Ensure consistent formatting after image insertion
+        let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+        textView.textStorage.addAttributes(attributes, range: fullRange)
         
         // Update the binding
         attributedContent = textView.attributedText
@@ -247,7 +251,8 @@ public struct CreateJournalView: View {
         
         return [
             .font: UIFont.systemFont(ofSize: 18),
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            .foregroundColor: UIColor.label
         ]
     }
     
@@ -267,32 +272,25 @@ public struct CreateJournalView: View {
         // Update traits based on state
         if isBold {
             traits.insert(.traitBold)
-        } else {
-            traits.remove(.traitBold)
         }
-        
         if isItalic {
             traits.insert(.traitItalic)
-        } else {
-            traits.remove(.traitItalic)
         }
         
-        // Create new font with updated traits while preserving size
+        // Create new font with updated traits
         if let newFontDescriptor = fontDescriptor.withSymbolicTraits(traits) {
-            let newFont = UIFont(descriptor: newFontDescriptor, size: currentFont.pointSize)
-            attributes[.font] = newFont
+            attributes[.font] = UIFont(descriptor: newFontDescriptor, size: 18)
         }
         
         // Handle underline separately
         if isUnderlined {
             attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
-        } else {
-            attributes[.underlineStyle] = nil
         }
         
+        // Apply attributes to typing attributes
         textView.typingAttributes = attributes
         
-        // Apply formatting to selected text if there is a selection
+        // Apply to selected text if there is a selection
         let selectedRange = textView.selectedRange
         if selectedRange.length > 0 {
             textView.textStorage.addAttributes(attributes, range: selectedRange)
@@ -338,6 +336,16 @@ public struct CreateJournalView: View {
                     .stroke(Color.gray.opacity(0.3), lineWidth: 1)
             )
         }
+    }
+    
+    private func validateAndSubmitPost() {
+        if title.isEmpty {
+            alertMessage = "Please enter a title for your journal entry."
+            showAlert = true
+            return
+        }
+        
+        submitPost()
     }
     
     public var body: some View {
@@ -450,10 +458,14 @@ public struct CreateJournalView: View {
                     dismiss()
                 },
                 trailing: Button("Save") {
-                    submitPost()
+                    validateAndSubmitPost()
                 }
-                .disabled(title.isEmpty)
             )
+            .alert("Attention", isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(alertMessage)
+            }
         }
     }
     
