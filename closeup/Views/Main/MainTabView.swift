@@ -29,7 +29,7 @@ struct MainTabView: View {
                     .tag(Tab.feed)
             }
 
-            CreateMenuView(appUser: appUser)
+            CreateMenuView(appUser: $appUser)
                 .tabItem {
                     Label("Create", systemImage: "plus.circle.fill")
                 }

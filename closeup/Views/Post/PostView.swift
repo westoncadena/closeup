@@ -24,10 +24,9 @@ struct Post: Identifiable {
 // REMOVED Comment struct definition from here - it now uses Models/Comment.swift
 
 struct PostView: View {
-    // Environment variable to dismiss the view (for the back button)
     @Environment(\.dismiss) var dismiss
     
-    let post: Post // This will now refer to the Post struct from PostService.swift
+    let post: Post
     @State private var showCommentsSheet: Bool = false
     
     // State for fetched data
@@ -115,11 +114,11 @@ struct PostView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 250) // Adjust height as needed
+                                .frame(height: 250)
                                 .clipped()
                                 .cornerRadius(8)
                         case .failure:
-                            Image(systemName: "photo") // Placeholder for failed load
+                            Image(systemName: "photo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(height: 250)
@@ -140,17 +139,15 @@ struct PostView: View {
                         .overlay(Text("Media preview not available").foregroundColor(.white))
                 }
 
-
                 // MARK: - Likes and Comments Bar
                 HStack(spacing: 20) {
                     Button(action: {
                         // TODO: Implement like action
                         print("Like button tapped")
-                        // self.displayLikes += 1 // Example interaction
                     }) {
                         HStack {
                             Image(systemName: "hand.thumbsup")
-                            Text("\(displayLikes)") // Using displayLikes
+                            Text("\(displayLikes)")
                         }
                     }
                     
@@ -160,10 +157,10 @@ struct PostView: View {
                     }) {
                         HStack {
                             Image(systemName: "message")
-                            Text("\(displayComments.count)") // Using displayComments
+                            Text("\(displayComments.count)")
                         }
                     }
-                    Spacer() // Pushes like/comment to the left
+                    Spacer()
                 }
                 .font(.subheadline)
                 .foregroundColor(.gray)
@@ -172,20 +169,18 @@ struct PostView: View {
 
                 Divider().padding(.horizontal)
 
-                // MARK: - Comments Preview (as in the design)
+                // MARK: - Comments Preview
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(displayComments.prefix(2)) { comment in // Show first 2 displayComments
+                    ForEach(displayComments.prefix(2)) { comment in
                         CommentRow(comment: comment)
                     }
                 }
                 .padding(.horizontal)
                 
-                Spacer() // Pushes content to the top
+                Spacer()
             }
-            // The sheet for showing all comments
             .sheet(isPresented: $showCommentsSheet) {
-                // Ensure CommentsListView can handle the Comment struct defined in this file
-                CommentsListView(comments: displayComments) // Using displayComments
+                CommentsListView(comments: displayComments)
             }
             .onAppear {
                 fetchPostDetails()
@@ -223,7 +218,7 @@ struct PostView: View {
     }
 }
 
-// MARK: - Comment Row View (Helper)
+// MARK: - Comment Row View
 struct CommentRow: View {
     let comment: Comment
 
@@ -255,16 +250,16 @@ struct CommentRow: View {
     }
 }
 
-// MARK: - Comments List View (for the sheet)
+// MARK: - Comments List View
 struct CommentsListView: View {
     let comments: [Comment]
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        NavigationView { // To have a title and dismiss button for the sheet
+        NavigationView {
             List {
                 ForEach(comments) { comment in
-                    CommentRow(comment: comment) // Reusing the CommentRow
+                    CommentRow(comment: comment)
                 }
             }
             .navigationTitle("Comments")
@@ -275,8 +270,6 @@ struct CommentsListView: View {
     }
 }
 
-
-// MARK: - Preview
 #Preview {
     // Mock UserProfiles for the preview
     let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())

@@ -14,10 +14,10 @@ struct PostCardView: View {
                 VStack(alignment: .leading) {
                     // We'll need to fetch/display actual user name based on post.userId
                     Text("User: \((post.userId?.uuidString ?? "Unknown").prefix(8))").font(.headline) // Safely unwrapped userId
-                    Text(post.createdAt ?? Date(), style: .date).font(.caption).foregroundColor(.gray) // Display creation date
+                    Text(post.createdAt, style: .date).font(.caption).foregroundColor(.gray) // Display creation date
                 }
                 Spacer()
-                Text(post.type ?? "Post") // Display post type (e.g., "Thoughts", "Updates")
+                Text(post.type) // Display post type (e.g., "Thoughts", "Updates")
                     .font(.caption)
                     .padding(5)
                     .background(Color.gray.opacity(0.2))
