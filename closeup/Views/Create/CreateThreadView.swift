@@ -96,12 +96,15 @@ public struct CreateThreadView: View {
     @State private var isUnderlined: Bool = false
     @State private var isBulletedList: Bool = false
     @State private var isQuoteField: Bool = false
+    @State private var isHeading: Bool = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
     
     @State private var showAlert = false
     @State private var alertMessage = ""
     
     private let threadService = ThreadService.shared
+    private let defaultFontSize: CGFloat = 18
+    private let headingFontSize: CGFloat = 24
     
     private func insertImage(_ image: UIImage) {
         guard let textView = textView else { return }
@@ -161,7 +164,7 @@ public struct CreateThreadView: View {
         paragraphStyle.lineHeightMultiple = 1.2
         
         return [
-            .font: UIFont.systemFont(ofSize: 18),
+            .font: UIFont.systemFont(ofSize: isHeading ? headingFontSize : defaultFontSize),
             .paragraphStyle: paragraphStyle,
             .foregroundColor: UIColor.label
         ]
@@ -174,7 +177,7 @@ public struct CreateThreadView: View {
         var attributes = createDefaultAttributes()
         
         // Get current font or use default system font
-        let currentFont = textView.typingAttributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: 18)
+        let currentFont = textView.typingAttributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: isHeading ? headingFontSize : defaultFontSize)
         
         // Create font descriptor with current traits
         let fontDescriptor = currentFont.fontDescriptor
@@ -190,7 +193,7 @@ public struct CreateThreadView: View {
         
         // Create new font with updated traits
         if let newFontDescriptor = fontDescriptor.withSymbolicTraits(traits) {
-            attributes[.font] = UIFont(descriptor: newFontDescriptor, size: 18)
+            attributes[.font] = UIFont(descriptor: newFontDescriptor, size: isHeading ? headingFontSize : defaultFontSize)
         }
         
         // Handle underline separately
@@ -214,9 +217,11 @@ public struct CreateThreadView: View {
             let traits = font.fontDescriptor.symbolicTraits
             isBold = traits.contains(.traitBold)
             isItalic = traits.contains(.traitItalic)
+            isHeading = font.pointSize >= headingFontSize
         } else {
             isBold = false
             isItalic = false
+            isHeading = false
         }
         
         isUnderlined = attributes[.underlineStyle] != nil
@@ -456,6 +461,13 @@ public struct CreateThreadView: View {
                     ),
                     isBulletedList: $isBulletedList,
                     isQuoteField: $isQuoteField,
+                    isHeading: Binding(
+                        get: { isHeading },
+                        set: { newValue in
+                            isHeading = newValue
+                            updateTypingAttributes()
+                        }
+                    ),
                     onPhotoSelected: { items in
                         handlePhotoSelection(items)
                     }
@@ -526,25 +538,17 @@ public struct CreateThreadView: View {
                 try await postService.createPost(
                     user_id: appUser.uid,
                     post_type: .thread,
+                    title: title,
                     content: attributedContent.string,
                     audience: audience.rawValue,
-                    media: [], // Images are now inline in the content
+                    media_urls: [],
                     thread_id: selectedThread.id
                 )
-                
-                if Task.isCancelled { return }
-                
-                await MainActor.run {
-                    isSubmitting = false
-                    dismiss()
-                }
+                dismiss()
             } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.submitError = error.localizedDescription
-                        self.isSubmitting = false
-                    }
-                }
+                print("Error creating post: \(error)")
+                isSubmitting = false
+                submitError = error.localizedDescription
             }
         }
     }

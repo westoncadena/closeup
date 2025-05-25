@@ -27,6 +27,7 @@ private enum DatabaseAudience {
 private struct PostPayload: Encodable {
     let user_id: String
     let post_type: String
+    let title: String
     let content: String
     let audience: String
     let media_urls: [String]?
@@ -34,9 +35,10 @@ private struct PostPayload: Encodable {
     let prompt_id: UUID?
     let thread_id: UUID?
     
-    init(user_id: String, post_type: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?, thread_id: UUID?) {
+    init(user_id: String, post_type: String, title: String, content: String, audience: String, media_urls: [String]?, media_types: [String]?, prompt_id: UUID?, thread_id: UUID?) {
         self.user_id = user_id
         self.post_type = post_type
+        self.title = title
         self.content = content
         self.audience = DatabaseAudience.convert(audience)
         self.media_urls = media_urls
@@ -69,21 +71,25 @@ public class PostService: ObservableObject {
     /// - Parameters:
     ///   - userId: The ID of the user creating the post.
     ///   - postType: The type of the post (e.g., thoughts, prompt).
+    ///   - title: The title of the post.
     ///   - content: The textual content of the post.
     ///   - audience: The audience for the post.
     ///   - media: An array of UIImages to be uploaded as media for the post.
+    ///   - media_urls: An array of URLs to existing media for the post.
     ///   - prompt_id: The ID of the prompt associated with the post.
     /// - Throws: An error if the post creation or media upload fails.
     public func createPost(
         user_id: String,
         post_type: PostType,
+        title: String,
         content: String,
         audience: String,
         media: [UIImage] = [],
+        media_urls: [String]? = nil,
         prompt_id: UUID? = nil,
         thread_id: UUID? = nil
     ) async throws {
-        var media_urls: [String] = []
+        var finalMediaUrls = media_urls ?? []
         var media_types: [String] = []
 
         // 1. If media exists, try to upload each image to Supabase Storage
@@ -106,7 +112,7 @@ public class PostService: ObservableObject {
                         .from("media")
                         .getPublicURL(path: storagePath)
                     
-                    media_urls.append(response.absoluteString)
+                    finalMediaUrls.append(response.absoluteString)
                     media_types.append("image/jpeg")
                     print("Public media URL: \(response.absoluteString)")
 
@@ -122,9 +128,10 @@ public class PostService: ObservableObject {
         let postPayload = PostPayload(
             user_id: user_id,
             post_type: post_type.rawValue,
+            title: title,
             content: content,
-            audience: audience,
-            media_urls: media_urls.isEmpty ? nil : media_urls,
+            audience: DatabaseAudience.convert(audience),
+            media_urls: finalMediaUrls.isEmpty ? nil : finalMediaUrls,
             media_types: media_types.isEmpty ? nil : media_types,
             prompt_id: prompt_id,
             thread_id: thread_id

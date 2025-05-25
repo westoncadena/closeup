@@ -27,6 +27,7 @@ public struct CreatePromptView: View {
     @State private var isBulletedList: Bool = false
     @State private var isQuoteField: Bool = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
+    @State private var isHeading: Bool = false
     
     private let defaultFontSize: CGFloat = 18
     private let promptService = PromptService()
@@ -280,6 +281,13 @@ public struct CreatePromptView: View {
                         ),
                         isBulletedList: $isBulletedList,
                         isQuoteField: $isQuoteField,
+                        isHeading: Binding(
+                            get: { isHeading },
+                            set: { newValue in
+                                isHeading = newValue
+                                updateTypingAttributes()
+                            }
+                        ),
                         onPhotoSelected: { items in
                             handlePhotoSelection(items)
                         }
@@ -331,16 +339,18 @@ public struct CreatePromptView: View {
     }
     
     private func submitPost() {
+        guard let prompt = todaysPrompt else { return }
+        
         Task {
             do {
                 let postService = PostService()
                 try await postService.createPost(
                     user_id: appUser.uid,
                     post_type: .prompt,
+                    title: prompt.text,
                     content: attributedContent.string,
                     audience: audience.rawValue,
-                    media: [], // Images are now inline in the content
-                    prompt_id: todaysPrompt?.id
+                    media_urls: []
                 )
                 dismiss()
             } catch {

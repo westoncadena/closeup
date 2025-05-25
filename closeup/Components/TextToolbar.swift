@@ -7,6 +7,7 @@ struct TextToolbar: View {
     @Binding var isUnderlined: Bool
     @Binding var isBulletedList: Bool
     @Binding var isQuoteField: Bool
+    @Binding var isHeading: Bool
     
     var onPhotoSelected: ([PhotosPickerItem]) -> Void
     
@@ -15,6 +16,14 @@ struct TextToolbar: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
+                // Heading
+                Button(action: {
+                    isHeading.toggle()
+                }) {
+                    Image(systemName: "textformat.size")
+                        .foregroundColor(isHeading ? .blue : .primary)
+                }
+                
                 // Bold
                 Button(action: {
                     isBold.toggle()
@@ -88,6 +97,7 @@ struct TextToolbar: View {
         isUnderlined: .constant(false),
         isBulletedList: .constant(false),
         isQuoteField: .constant(false),
+        isHeading: .constant(false),
         onPhotoSelected: { _ in }
     )
 } 
