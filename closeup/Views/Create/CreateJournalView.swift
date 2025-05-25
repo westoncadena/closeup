@@ -14,7 +14,7 @@ protocol FormattedTextViewDelegate {
     func textDidChange(_ attributedText: NSAttributedString)
 }
 
-struct FormattedTextEditor: UIViewRepresentable {
+struct JournalTextEditor: UIViewRepresentable {
     @Binding var attributedText: NSAttributedString
     var onImageInsertion: ((UIImage) -> Void)?
     var onTextViewCreated: ((UITextView) -> Void)?
@@ -101,6 +101,7 @@ struct FormattedTextEditor: UIViewRepresentable {
             onSelectionChanged: onSelectionChanged,
             onUpdateQuoteBorder: onUpdateQuoteBorder,
             onItalicStateChanged: onItalicStateChanged,
+            onQuoteStateChanged: onQuoteStateChanged,
             handleQuoteFormatting: handleQuoteFormatting
         )
     }
@@ -119,16 +120,21 @@ struct FormattedTextEditor: UIViewRepresentable {
         private var lastWasNewline = false
         private var isHeading = false
         private var isQuoteField = false
+        private var isBulletedList = false
+        private var bulletIndent: CGFloat = 20
+        private var bulletHeadIndent: CGFloat = 35
         
         init(onTextChanged: ((NSAttributedString) -> Void)?,
              onSelectionChanged: (([NSAttributedString.Key: Any]) -> Void)?,
              onUpdateQuoteBorder: ((UITextView, Bool) -> Void)?,
              onItalicStateChanged: ((Bool) -> Void)?,
+             onQuoteStateChanged: ((Bool) -> Void)?,
              handleQuoteFormatting: ((UITextView) -> Void)?) {
             self.onTextChanged = onTextChanged
             self.onSelectionChanged = onSelectionChanged
             self.onUpdateQuoteBorder = onUpdateQuoteBorder
             self.onItalicStateChanged = onItalicStateChanged
+            self.onQuoteStateChanged = onQuoteStateChanged
             self.handleQuoteFormatting = handleQuoteFormatting
             
             // Initialize with default attributes including paragraph style
@@ -194,70 +200,92 @@ struct FormattedTextEditor: UIViewRepresentable {
             if text == "\n" {
                 let currentAttributes = textView.typingAttributes
                 
+                // Check if we're in a bullet list
+                if let paragraphStyle = currentAttributes[.paragraphStyle] as? NSParagraphStyle,
+                   paragraphStyle.headIndent == bulletHeadIndent && paragraphStyle.firstLineHeadIndent == bulletIndent {
+                    
+                    // Get the current line's text
+                    let nsText = textView.text as NSString
+                    let currentLineRange = nsText.lineRange(for: NSRange(location: range.location, length: 0))
+                    let currentLineText = nsText.substring(with: currentLineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // If the current line is empty (just a bullet point), remove bullet formatting
+                    if currentLineText.isEmpty || currentLineText == "•" || currentLineText == "• " {
+                        // Remove bullet formatting
+                        let normalStyle = NSMutableParagraphStyle()
+                        normalStyle.lineSpacing = defaultLineSpacing
+                        normalStyle.paragraphSpacing = defaultLineSpacing * 2
+                        normalStyle.lineHeightMultiple = 1.2
+                        normalStyle.firstLineHeadIndent = 0
+                        normalStyle.headIndent = 0
+                        
+                        var newAttributes = currentAttributes
+                        newAttributes[.paragraphStyle] = normalStyle
+                        
+                        // Remove the bullet point and any whitespace
+                        let mutableText = NSMutableAttributedString(attributedString: textView.attributedText)
+                        mutableText.replaceCharacters(in: currentLineRange, with: "")
+                        textView.attributedText = mutableText
+                        textView.typingAttributes = newAttributes
+                        isBulletedList = false
+                        return false
+                    }
+                    
+                    // Insert newline and bullet point
+                    textView.insertText("\n• ")
+                    return false
+                }
+                
                 // Check if we're in a quote
                 if let paragraphStyle = currentAttributes[.paragraphStyle] as? NSParagraphStyle,
                    paragraphStyle.headIndent == 20 && paragraphStyle.firstLineHeadIndent == 20 {
                     print("DEBUG - In quote, handling newline")
                     
-                    // 1. First, let the newline be inserted normally to maintain cursor position
-                    textView.insertText("\n")
+                    // Get the current line's text
+                    let nsText = textView.text as NSString
+                    let currentLineRange = nsText.lineRange(for: NSRange(location: range.location, length: 0))
+                    let currentLineText = nsText.substring(with: currentLineRange).trimmingCharacters(in: .whitespacesAndNewlines)
                     
-                    // 2. Get the range of the line before the cursor
-                    let text = textView.text as NSString
-                    let cursorPosition = textView.selectedRange.location
-                    let previousLineRange = text.lineRange(for: NSRange(location: max(0, cursorPosition - 2), length: 0))
-                    
-                    // 3. Ensure the previous line maintains quote formatting
-                    let quoteStyle = NSMutableParagraphStyle()
-                    quoteStyle.lineSpacing = defaultLineSpacing
-                    quoteStyle.paragraphSpacing = defaultLineSpacing * 2
-                    quoteStyle.lineHeightMultiple = 1.2
-                    quoteStyle.firstLineHeadIndent = 20
-                    quoteStyle.headIndent = 20
-                    
-                    var quoteAttributes = currentAttributes
-                    quoteAttributes[.paragraphStyle] = quoteStyle
-                    quoteAttributes[.foregroundColor] = UIColor.systemGray
-                    if let font = UIFont.systemFont(ofSize: defaultFontSize).fontDescriptor.withSymbolicTraits(.traitItalic) {
-                        quoteAttributes[.font] = UIFont(descriptor: font, size: defaultFontSize)
-                    }
-                    
-                    textView.textStorage.addAttributes(quoteAttributes, range: previousLineRange)
-                    
-                    // 4. Set up normal formatting for new line
-                    var newAttributes = createDefaultAttributes()
-                    let normalParagraphStyle = NSMutableParagraphStyle()
-                    normalParagraphStyle.lineSpacing = defaultLineSpacing
-                    normalParagraphStyle.paragraphSpacing = defaultLineSpacing * 2
-                    normalParagraphStyle.lineHeightMultiple = 1.2
-                    normalParagraphStyle.firstLineHeadIndent = 0
-                    normalParagraphStyle.headIndent = 0
-                    newAttributes[.paragraphStyle] = normalParagraphStyle
-                    newAttributes[.foregroundColor] = UIColor.label
-                    newAttributes[.font] = UIFont.systemFont(ofSize: defaultFontSize)
-                    
-                    // 5. Apply normal formatting to the new line
-                    let currentLineRange = text.lineRange(for: NSRange(location: cursorPosition, length: 0))
-                    textView.textStorage.addAttributes(newAttributes, range: currentLineRange)
-                    textView.typingAttributes = newAttributes
-                    
-                    // 6. Update states
-                    isQuoteField = false
-                    onItalicStateChanged?(false)
-                    
-                    // 7. Update the quote border height - only cover the quoted text
-                    if let borderLayer = textView.layer.sublayers?.first(where: { $0.name == "quoteBorder" }),
-                       let startPosition = textView.layer.value(forKey: "quoteStartPosition") as? UITextPosition {
-                        let startRect = textView.caretRect(for: startPosition)
+                    // If the current line is empty, remove quote formatting
+                    if currentLineText.isEmpty {
+                        // Remove quote formatting
+                        let normalStyle = NSMutableParagraphStyle()
+                        normalStyle.lineSpacing = defaultLineSpacing
+                        normalStyle.paragraphSpacing = defaultLineSpacing * 2
+                        normalStyle.lineHeightMultiple = 1.2
+                        normalStyle.firstLineHeadIndent = 0
+                        normalStyle.headIndent = 0
                         
-                        // Get the position right before the newline in the previous line
-                        if let endPosition = textView.position(from: textView.beginningOfDocument, offset: previousLineRange.location + previousLineRange.length - 1) {
-                            let endRect = textView.caretRect(for: endPosition)
-                            borderLayer.frame.size.height = endRect.maxY - startRect.minY
+                        var newAttributes = currentAttributes
+                        newAttributes[.paragraphStyle] = normalStyle
+                        newAttributes[.foregroundColor] = UIColor.label
+                        if let font = UIFont.systemFont(ofSize: defaultFontSize).fontDescriptor.withSymbolicTraits([]) {
+                            newAttributes[.font] = UIFont(descriptor: font, size: defaultFontSize)
                         }
+                        
+                        // Apply normal formatting to the current line
+                        textView.textStorage.addAttributes(newAttributes, range: currentLineRange)
+                        textView.typingAttributes = newAttributes
+                        
+                        // Update quote state
+                        isQuoteField = false
+                        onQuoteStateChanged?(false)
+                        onItalicStateChanged?(false)
+                        
+                        // Remove quote border
+                        if let borderLayer = textView.layer.sublayers?.first(where: { $0.name == "quoteBorder" }) {
+                            borderLayer.removeFromSuperlayer()
+                        }
+                        
+                        // Remove the empty line
+                        let mutableText = NSMutableAttributedString(attributedString: textView.attributedText)
+                        mutableText.replaceCharacters(in: currentLineRange, with: "")
+                        textView.attributedText = mutableText
+                        return false
                     }
                     
-                    print("DEBUG - Quote handling complete")
+                    // Continue quote formatting
+                    textView.insertText("\n")
                     return false
                 }
             }
@@ -267,6 +295,21 @@ struct FormattedTextEditor: UIViewRepresentable {
         
         func textViewDidChange(_ textView: UITextView) {
             onTextChanged?(textView.attributedText)
+            
+            // Update bullet list formatting
+            if isBulletedList {
+                let attributes = textView.typingAttributes
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.lineSpacing = defaultLineSpacing
+                paragraphStyle.paragraphSpacing = defaultLineSpacing * 2
+                paragraphStyle.lineHeightMultiple = 1.2
+                paragraphStyle.firstLineHeadIndent = bulletIndent
+                paragraphStyle.headIndent = bulletHeadIndent
+                
+                var newAttributes = attributes
+                newAttributes[.paragraphStyle] = paragraphStyle
+                textView.typingAttributes = newAttributes
+            }
             
             // Scroll to make cursor visible with padding
             if let selectedRange = textView.selectedTextRange {
@@ -752,7 +795,7 @@ public struct CreateJournalView: View {
                     .padding(.horizontal)
                     
                     ScrollView {
-                        FormattedTextEditor(
+                        JournalTextEditor(
                             attributedText: $attributedContent,
                             onImageInsertion: { image in
                                 insertImage(image)
@@ -771,6 +814,9 @@ public struct CreateJournalView: View {
                             },
                             onItalicStateChanged: { newState in
                                 self.isItalic = newState
+                            },
+                            onQuoteStateChanged: { newState in
+                                self.isQuoteField = newState
                             },
                             handleQuoteFormatting: { textView in
                                 self.handleQuoteFormatting(textView)
@@ -814,12 +860,8 @@ public struct CreateJournalView: View {
                             get: { isBulletedList },
                             set: { newValue in
                                 isBulletedList = newValue
-                                // If enabling bullets, disable quotes
-                                if newValue {
-                                    isQuoteField = false
-                                }
                                 if let textView = textView {
-                                    handleBulletedList(textView)
+                                    handleBulletFormatting(textView)
                                 }
                             }
                         ),
@@ -827,10 +869,6 @@ public struct CreateJournalView: View {
                             get: { isQuoteField },
                             set: { newValue in
                                 isQuoteField = newValue
-                                // If enabling quotes, disable bullets
-                                if newValue {
-                                    isBulletedList = false
-                                }
                                 if let textView = textView {
                                     handleQuoteFormatting(textView)
                                 }
@@ -914,59 +952,54 @@ public struct CreateJournalView: View {
         }
     }
     
-    private func handleBulletedList(_ textView: UITextView) {
+    private func handleBulletFormatting(_ textView: UITextView) {
         let selectedRange = textView.selectedRange
         let text = textView.text as NSString
         
         // Get the range of the current line
         let lineRange = text.lineRange(for: NSRange(location: selectedRange.location, length: 0))
-        let lineText = text.substring(with: lineRange)
+        let currentLineText = text.substring(with: lineRange)
         
         if isBulletedList {
-            // If line doesn't start with bullet, add one
-            if !lineText.hasPrefix("• ") {
-                // Create attributes for the bullet point
-                var attributes = textView.typingAttributes
-                let paragraphStyle = NSMutableParagraphStyle()
-                paragraphStyle.lineSpacing = 4
-                paragraphStyle.paragraphSpacing = 8
-                paragraphStyle.lineHeightMultiple = 1.2
-                paragraphStyle.firstLineHeadIndent = 20
-                paragraphStyle.headIndent = 35
-                attributes[.paragraphStyle] = paragraphStyle
-                
-                // Insert bullet point at the start of the line
-                let bullet = NSAttributedString(string: "• ", attributes: attributes)
-                textView.textStorage.insert(bullet, at: lineRange.location)
-                
-                // Apply formatting to the rest of the line
-                let remainingRange = NSRange(location: lineRange.location + 2, length: lineText.count)
-                textView.textStorage.addAttributes(attributes, range: remainingRange)
-                
-                // Move cursor after the bullet
-                textView.selectedRange = NSRange(location: lineRange.location + 2, length: 0)
-                
-                // Update typing attributes for next input
-                textView.typingAttributes = attributes
-            }
-        } else {
-            // Only update typing attributes for future text
-            var attributes = textView.typingAttributes
+            // Create bullet attributes
+            var attributes = createDefaultAttributes()
             let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.lineSpacing = 4
-            paragraphStyle.paragraphSpacing = 8
+            paragraphStyle.lineSpacing = defaultLineSpacing
+            paragraphStyle.paragraphSpacing = defaultLineSpacing * 2
             paragraphStyle.lineHeightMultiple = 1.2
+            paragraphStyle.firstLineHeadIndent = 20
+            paragraphStyle.headIndent = 35
             attributes[.paragraphStyle] = paragraphStyle
+            
+            // Apply bullet formatting to the current line
+            textView.textStorage.addAttributes(attributes, range: lineRange)
             textView.typingAttributes = attributes
             
-            // If we're on a bullet line and it's empty, remove the bullet
-            if lineText.trimmingCharacters(in: .whitespaces) == "•" || lineText == "• " {
-                textView.textStorage.deleteCharacters(in: NSRange(location: lineRange.location, length: 2))
-                
-                // Adjust cursor position if needed
-                if selectedRange.location >= lineRange.location + 2 {
-                    textView.selectedRange = NSRange(location: selectedRange.location - 2, length: selectedRange.length)
-                }
+            // Add bullet point if line doesn't start with one
+            if !currentLineText.hasPrefix("• ") {
+                textView.insertText("• ")
+            }
+        } else {
+            // Reset to default attributes
+            var defaultAttributes = createDefaultAttributes()
+            
+            // Reset paragraph style
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineSpacing = defaultLineSpacing
+            paragraphStyle.paragraphSpacing = defaultLineSpacing * 2
+            paragraphStyle.lineHeightMultiple = 1.2
+            paragraphStyle.firstLineHeadIndent = 0
+            paragraphStyle.headIndent = 0
+            defaultAttributes[.paragraphStyle] = paragraphStyle
+            
+            // Apply normal formatting to the current line
+            textView.textStorage.addAttributes(defaultAttributes, range: lineRange)
+            textView.typingAttributes = defaultAttributes
+            
+            // Remove bullet point if present
+            if currentLineText.hasPrefix("• ") {
+                let bulletRange = NSRange(location: lineRange.location, length: 2)
+                textView.textStorage.replaceCharacters(in: bulletRange, with: "")
             }
         }
         
