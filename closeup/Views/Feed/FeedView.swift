@@ -61,6 +61,9 @@ struct FeedView: View {
                         }
                         .padding(.horizontal)
                     }
+                    .refreshable {
+                        await loadFeedPosts()
+                    }
                 }
             }
             .navigationTitle("closeup")
