@@ -77,7 +77,7 @@ struct FeedView: View {
                     await loadFeedPosts()
                 }
             }
-            .onChange(of: selectedFeedType) { _ in
+            .onChange(of: selectedFeedType) {_, _ in
                 Task {
                     await loadFeedPosts()
                 }

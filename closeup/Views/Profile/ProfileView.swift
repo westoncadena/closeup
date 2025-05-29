@@ -92,9 +92,9 @@ struct ProfileView: View {
                         case .grid:
                             PostsBoardView() // Pass userPosts when ready: PostsBoardView(posts: userPosts)
                         case .list:
-                            PostsListView() // Pass userPosts when ready: PostsListView(posts: userPosts)
+                            PostsListView(user: profile) // Pass userPosts when ready: PostsListView(posts: userPosts)
                         case .calendar:
-                            PostsCalendarView() // Pass userPosts when ready: PostsCalendarView(posts: userPosts)
+                            PostsCalendarView(user: profile) // Pass userPosts when ready: PostsCalendarView(posts: userPosts)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

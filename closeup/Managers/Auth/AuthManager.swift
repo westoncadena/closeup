@@ -18,6 +18,7 @@ enum AuthError: Error {
     case emailAlreadyRegistered
     case unknown(Error)
     
+    @MainActor
     var message: String {
         switch self {
         case .sessionMissing:
@@ -67,27 +68,24 @@ class AuthManager {
             print("Attempting to register new user with email: \(email)")
             let regAuthResponse = try await client.auth.signUp(email: email, password: password)
             
-            // Check if email confirmation is required
+            // If session is nil, it means email verification is required.
+            // Supabase creates the user object in this case, so user should not be nil.
             if regAuthResponse.session == nil {
-                print("No session returned - email verification likely required")
-                if regAuthResponse.user != nil {
-                    print("User created successfully, verification email should be sent")
-                    throw AuthError.emailVerificationRequired
-                } else {
-                    print("No user and no session created")
-                    throw AuthError.sessionMissing
-                }
+                print("No session returned - email verification likely required. User object should exist.")
+                throw AuthError.emailVerificationRequired
             }
             
+            // If we reach here, session is NOT nil. The guard is for added safety / clarity.
             guard let session = regAuthResponse.session else {
-                print("Session is nil after registration")
+                // This path should ideally not be hit if the above logic correctly identifies no-session cases.
+                print("Session is unexpectedly nil after registration and check for verification requirement.")
                 throw AuthError.sessionMissing
             }
             
             print("Registration successful with session: \(session.user.id)")
             return AppUser(uid: session.user.id.uuidString, email: session.user.email)
         } catch let error as AuthError {
-            print("AuthError during registration: \(error.message)")
+            print("AuthError during registration: \(await error.message)")
             throw error
         } catch {
             print("Caught error during registration: \(error.localizedDescription)")

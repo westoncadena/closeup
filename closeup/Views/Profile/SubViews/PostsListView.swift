@@ -5,35 +5,18 @@ import SwiftUI
 // Post model is available from closeup/Models/Post.swift
 
 struct PostsListView: View {
-    // Mock Data
-    let mockUser = UserProfile(
-        id: UUID(),
-        username: "eunsoo_y",
-        firstName: "Eunsoo",
-        lastName: "Yeo",
-        phoneNumber: nil,
-        profilePicture: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?ixlib=rb-1.2.1&auto=format&fit=crop&w=668&q=80", // Example profile pic
-        lastLogin: Date(),
-        joinedAt: Date()
-    )
+    // User for whom to display posts
+    let user: UserProfile
 
-    var mockUserPosts: [Post]
+    // Services
+    private let postService = PostService()
 
-    init() {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Initialize mockUserPosts
-        // These posts are by 'mockUser'
-        mockUserPosts = [
-            Post(id: UUID(), userId: mockUser.id, content: "Just enjoyed a wonderful hike in the mountains! The view was breathtaking. #nature #hiking", mediaUrls: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -1, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "What's a book that changed your perspective recently? Looking for recommendations!", mediaUrls: nil, mediaTypes: nil, audience: "public", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: .day, value: -3, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Spent the afternoon coding and working on a new feature for my app. Making good progress!", mediaUrls: ["https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -5, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Reflecting on the importance of small joys today. What's something simple that made you happy this week?", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: .weekOfYear, value: -1, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Experimenting with a new recipe tonight! Wish me luck. 🍝 #cooking #foodie", mediaUrls: [], mediaTypes: [], audience: "public", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -10, to: now)!)
-        ]
-    }
+    // State for posts, loading, and error handling
+    @State private var posts: [Post] = []
+    @State private var isLoading: Bool = false
+    @State private var errorMessage: String? = nil
     
+    // Date Formatter
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -42,25 +25,73 @@ struct PostsListView: View {
     }
 
     var body: some View {
-        NavigationView { // Added NavigationView for a title
-            List {
-
-                // Section for the posts
-                Section(header: Text("Posts").font(.title2).fontWeight(.bold)) {
-                    if mockUserPosts.isEmpty {
-                        Text("No posts yet. Share your thoughts!")
-                            .foregroundColor(.gray)
-                            .padding()
-                    } else {
-                        ForEach(mockUserPosts) { post in
-                            PostListItemView(post: post, user: mockUser, dateFormatter: dateFormatter)
-                                .padding(.vertical, 8) // Add some padding between items
+        // Removed NavigationView as it's usually part of the parent view in a profile context
+        List {
+            // Section for the posts
+            Section(header: Text("Posts").font(.title2).fontWeight(.bold)) {
+                if isLoading {
+                    ProgressView("Loading posts...")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else if let errorMessage = errorMessage {
+                    VStack(alignment: .center) {
+                        Text("Error loading posts:")
+                            .foregroundColor(.red)
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Button("Retry") {
+                            Task {
+                                await loadUserPosts()
+                            }
                         }
+                        .padding(.top, 5)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+                } else if posts.isEmpty {
+                    Text("No posts yet. Share your thoughts!")
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    ForEach(posts) { post in // Changed mockUserPosts to posts
+                        // Pass the specific user object to PostListItemView
+                        PostListItemView(post: post, user: user, dateFormatter: dateFormatter)
+                            .padding(.vertical, 8)
                     }
                 }
             }
-            .listStyle(PlainListStyle()) // Use PlainListStyle for a cleaner look
         }
+        .listStyle(PlainListStyle())
+        .onAppear {
+            Task {
+                await loadUserPosts()
+            }
+        }
+    }
+
+    // Function to load posts for the current user
+    func loadUserPosts() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Fetch posts for the specific user's ID
+            // Assuming user.id is the correct UUID to fetch posts for.
+            // PostService().fetchPosts(forUserId: UUID) is assumed to exist
+            // If PostService().fetchPosts expects an array of UUIDs, adjust accordingly.
+            // For now, assuming a function like `fetchPosts(forUserId: UUID)` or similar is available
+            // or that `fetchPosts(forUserIds: [UUID])` can be used with a single user ID.
+            let userSpecificPosts = try await postService.fetchPosts(forUserIds: [user.id])
+            self.posts = userSpecificPosts.sorted(by: { $0.createdAt > $1.createdAt }) // Sort by most recent
+            print("Successfully loaded \\(posts.count) posts for user: \\(user.username)")
+        } catch {
+            print("Error loading posts for user \\(user.username): \\(error)")
+            self.errorMessage = error.localizedDescription
+            self.posts = [] // Clear posts on error
+        }
+        isLoading = false
     }
 }
 
@@ -78,9 +109,9 @@ private struct PostListItemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Post Content
-            Text(post.content)
+            HTMLTextView(htmlContent: post.content)
                 .font(.body)
-                .lineLimit(5) // Allow a few lines for content preview
+                .lineLimit(5)
 
             // Media Preview (First image if available)
             if let mediaUrls = post.mediaUrls, !mediaUrls.isEmpty,
@@ -135,7 +166,17 @@ private struct PostListItemView: View {
     }
 }
 
-
 #Preview {
-    PostsListView()
+    // Create a mock UserProfile for the preview
+    let mockPreviewUser = UserProfile(
+        id: UUID(),
+        username: "preview_user",
+        firstName: "Preview",
+        lastName: "User",
+        phoneNumber: nil,
+        profilePicture: nil,
+        lastLogin: Date(),
+        joinedAt: Date()
+    )
+    PostsListView(user: mockPreviewUser)
 } 

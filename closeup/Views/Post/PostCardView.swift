@@ -2,19 +2,44 @@ import SwiftUI
 
 struct PostCardView: View {
     let post: Post
+    @State private var authorProfile: UserProfile? // Store the whole profile
+    private let userService = UserService() // Instance of UserService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // User Info Header - This will need adjustment based on how User info is fetched/linked
+            // User Info Header
             HStack {
-                Image(systemName: "person.circle.fill") // Placeholder avatar
-                    .resizable()
-                    .frame(width: 30, height: 30)
-                    .clipShape(Circle())
+                if let profilePicUrlString = authorProfile?.profilePicture, let url = URL(string: profilePicUrlString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 30, height: 30)
+                                .clipShape(Circle())
+                        case .failure(_):
+                            Image(systemName: "person.circle.fill") // Fallback on failure
+                                .resizable()
+                                .frame(width: 30, height: 30)
+                                .clipShape(Circle())
+                        case .empty:
+                            Image(systemName: "person.circle.fill") // Placeholder while loading
+                                .resizable()
+                                .frame(width: 30, height: 30)
+                                .clipShape(Circle())
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                } else {
+                    Image(systemName: "person.circle.fill") // Default placeholder
+                        .resizable()
+                        .frame(width: 30, height: 30)
+                        .clipShape(Circle())
+                }
                 VStack(alignment: .leading) {
-                    // We'll need to fetch/display actual user name based on post.userId
-                    Text("User: \((post.userId?.uuidString ?? "Unknown").prefix(8))").font(.headline) // Safely unwrapped userId
-                    Text(post.createdAt, style: .date).font(.caption).foregroundColor(.gray) // Display creation date
+                    Text(authorProfile?.username ?? "Loading...").font(.headline) // Display username from profile
+                    Text(post.createdAt, style: .date).font(.caption).foregroundColor(.gray)
                 }
                 Spacer()
                 Text(post.type) // Display post type (e.g., "Thoughts", "Updates")
@@ -24,7 +49,16 @@ struct PostCardView: View {
                     .cornerRadius(5)
             }
 
-            Text(post.content).font(.body)
+            // Display Title if available and not 'Untitled'
+            if let title = post.title, title.lowercased() != "untitled" {
+                Text(title)
+                    .font(.title2) // Slightly larger font for title
+                    .fontWeight(.semibold)
+                    .lineLimit(2) // Limit title to 2 lines with truncation
+            }
+
+            HTMLTextView(htmlContent: post.content, baseFontSize: 18)
+                .lineLimit(3) // Limit content to 3 lines with truncation
 
             // Updated to handle mediaUrls and mediaTypes arrays
             // This example displays the first image if available.
@@ -73,32 +107,49 @@ struct PostCardView: View {
         .background(Color(UIColor.systemBackground))
         .cornerRadius(10)
         .shadow(radius: 3)
+        .onAppear {
+            fetchAuthorProfile() // Renamed function
+        }
+    }
+
+    private func fetchAuthorProfile() { // Renamed and modified function
+        guard let userId = post.userId else {
+            // Potentially set a default state for authorProfile if needed
+            // For now, it will remain nil and UI will show "Loading..." or default
+            return
+        }
+
+        Task {
+            do {
+                let fetchedProfile = try await userService.getUser(userId: userId)
+                await MainActor.run {
+                    self.authorProfile = fetchedProfile // Store the fetched profile
+                }
+            } catch {
+                print("Error fetching user profile for post \(post.id): \(error)")
+                // authorProfile remains nil, UI handles it
+            }
+        }
     }
 }
 
 // MARK: - Preview
 #Preview {
     // Mock UserProfiles for the preview
-    let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
-    let westonProfile = UserProfile(id: UUID(), username: "weston_c", firstName: "Weston", lastName: "Cadena", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
-    let mckenzieProfile = UserProfile(id: UUID(), username: "mckenzie_s", firstName: "Mckenzie", lastName: "Stanley", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
-
-    // Mock Comments using UserProfile
-    let comment1 = Comment(id: UUID(), user: westonProfile, text: "Cool stuff")
-    let comment2 = Comment(id: UUID(), user: mckenzieProfile, text: "AMAZE!!!")
-    let comment3 = Comment(id: UUID(), user: eunsooProfile, text: "Thanks for the feedback everyone! Really appreciate it.")
+    let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80", lastLogin: nil, joinedAt: Date()) // Added a sample profile picture URL
 
     let mockPost = Post(
         id: UUID(),
         userId: eunsooProfile.id, // Assigning a userId for the author for preview fetching logic
-        content: "I am building this really cool app with Weston. I hope this becomes really helpful for people. The app will help people keep in touch more intentionally!",
+        content: "I am building this really cool app with Weston. I hope this becomes really helpful for people. The app will help people keep in touch more intentionally! This is a longer line of text to test truncation and see how it behaves when the content exceeds the available space.",
         mediaUrls: ["./closeup/Resources/Media/DSC_8698.jpg"],
         mediaTypes: ["image/jpeg"],
         audience: "friends",
         type: "thoughts",
         promptId: nil,
         threadId: nil,
-        createdAt: Date()
+        createdAt: Date(),
+        title: "My Awesome Post Title That Might Be a Bit Long"
     )
     
     // PostView init now only takes post, initialMockLikes, initialMockComments
