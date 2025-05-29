@@ -49,4 +49,37 @@ public class PromptService {
             throw error
         }
     }
+    
+    /// Fetches a prompt for a specific date from the Supabase database.
+    /// - Parameter date: The date to fetch the prompt for.
+    /// - Returns: A `Prompt` object for the specified date.
+    /// - Throws: An error if fetching or decoding fails.
+    public func fetchPrompt(forDate date: Date) async throws -> Prompt {
+        // Get date in MM-dd format
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MM-dd"
+        let dateString = dateFormatter.string(from: date)
+        
+        do {
+            print("Attempting to fetch prompt for date: \(dateString)...")
+            let response: [Prompt] = try await client
+                .from("prompts")
+                .select()
+                .eq("month_day", value: dateString)
+                .execute()
+                .value
+            
+            guard let prompt = response.first else {
+                throw NSError(domain: "PromptService", code: 404, userInfo: [
+                    NSLocalizedDescriptionKey: "No prompt found for date \(dateString)"
+                ])
+            }
+            
+            print("Successfully fetched prompt for \(dateString)")
+            return prompt
+        } catch {
+            print("Failed to fetch prompt: \(error)")
+            throw error
+        }
+    }
 } 

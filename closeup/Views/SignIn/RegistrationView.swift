@@ -15,15 +15,21 @@ struct RegistrationView: View {
     @State var password: String = ""
     @State var errorMessage: String?
     @State var showError: Bool = false
+    @State var showVerificationAlert: Bool = false
 
     @Binding var appUser: AppUser?
     
     var body: some View {
         VStack {
-            VStack(spacing:10){
+            VStack(spacing: 10) {
                 AppTextField(placeholder: "Email Address", text: $email)
                 
                 AppSecureField(placeholder: "Password", text: $password)
+                
+                Text(SignInViewModel.passwordRequirements)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 24)
             
@@ -32,6 +38,7 @@ struct RegistrationView: View {
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.top, 4)
+                    .padding(.horizontal, 24)
             }
             
             Button {
@@ -40,7 +47,9 @@ struct RegistrationView: View {
                         let appUser = try await viewModel.registerNewUserWithEmail(email: email, password: password)
                         self.appUser = appUser
                         dismiss.callAsFunction()
-                    } catch let error as SignInError {
+                    } catch AuthError.emailVerificationRequired {
+                        showVerificationAlert = true
+                    } catch let error as AuthError {
                         errorMessage = error.message
                     } catch {
                         errorMessage = "An unexpected error occurred. Please try again."
@@ -58,6 +67,13 @@ struct RegistrationView: View {
             }
             .padding(.top, 12)
             .padding(.horizontal, 24)
+        }
+        .alert("Verify Your Email", isPresented: $showVerificationAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Please check your inbox to verify your email. You can sign in after verification.")
         }
     }
 }

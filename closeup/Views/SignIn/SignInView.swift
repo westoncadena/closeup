@@ -46,7 +46,7 @@ struct SignInView: View {
                     do {
                         let appUser = try await viewModel.signInWithEmail(email: email, password: password)
                         self.appUser = appUser
-                    } catch let error as SignInError {
+                    } catch let error as AuthError {
                         errorMessage = error.message
                     } catch {
                         errorMessage = "An unexpected error occurred. Please try again."
@@ -68,7 +68,7 @@ struct SignInView: View {
                     Task {
                         do {
                             let appUser = try await viewModel.signInWithGoogle()
-                            self.appUser=appUser
+                            self.appUser = appUser
                         } catch {
                             // Handle error appropriately
                             print("Sign in failed: \(error)")

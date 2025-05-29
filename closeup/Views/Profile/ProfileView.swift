@@ -4,11 +4,13 @@ struct ProfileView: View {
     // Assuming AppUser is passed, similar to FeedView. This identifies the *logged-in* user.
     // If this ProfileView can be for *any* user, you might pass a userId: UUID instead.
     let appUser: AppUser 
-
+    @Environment(\.dismiss) private var dismiss
     @State private var userProfile: UserProfile? = nil
     @State private var userPosts: [Post] = []
     @State private var isLoading: Bool = true
     @State private var errorMessage: String? = nil
+    @State private var showSignOutAlert = false
+    @State private var showMenu = false
 
     @State private var selectedViewType: ProfileSubViewType = .grid
 
@@ -64,13 +66,6 @@ struct ProfileView: View {
                                 // Text("\(userPosts.count) Posts").font(.caption).foregroundColor(.gray)
                             }
                             Spacer() 
-                            Button { 
-                                print("Settings button tapped")
-                                // TODO: Navigate to settings or show settings sheet 
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.title2)
-                            }
                         }
                         .padding(.horizontal)
                         .padding(.top)
@@ -115,13 +110,31 @@ struct ProfileView: View {
              // Hamburger menu if needed - usually part of a more complex navigation structure
             .toolbar {
                  ToolbarItem(placement: .navigationBarLeading) {
-                     Button { 
-                         print("Hamburger menu tapped - ProfileView")
-                         // Action for hamburger menu
+                     Menu {
+                         Button(role: .destructive) {
+                             showSignOutAlert = true
+                         } label: {
+                             Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                         }
                      } label: {
                          Image(systemName: "line.3.horizontal")
                      }
                  }
+            }
+            .alert("Sign Out", isPresented: $showSignOutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign Out", role: .destructive) {
+                    Task {
+                        do {
+                            try await AuthManager.shared.signOut()
+                            NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
+                        } catch {
+                            print("Error signing out: \(error)")
+                        }
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to sign out?")
             }
         }
         .onAppear {

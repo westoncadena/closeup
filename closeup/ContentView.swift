@@ -11,6 +11,9 @@ struct ContentView: View {
                 SignInView(appUser: $appUser)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
+            appUser = nil
+        }
     }
 }
 

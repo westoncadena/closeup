@@ -7,33 +7,18 @@
 
 import Foundation
 
-enum SignInError: Error {
-    case invalidForm
-    case invalidEmail
-    case invalidPassword
-    
-    var message: String {
-        switch self {
-        case .invalidForm:
-            return "Please check your email and password"
-        case .invalidEmail:
-            return "Please enter a valid email address"
-        case .invalidPassword:
-            return "Password must be at least 6 characters"
-        }
-    }
-}
-
 @MainActor
 class SignInViewModel: ObservableObject {
     let signInGoogle = SignInGoogle()
+    
+    static let passwordRequirements = "Password must be at least 6 characters"
 
     func isFormValid(email: String, password: String) throws {
         guard email.isValidEmail() else {
-            throw SignInError.invalidEmail
+            throw AuthError.invalidEmail
         }
-        guard password.count > 6 else {
-            throw SignInError.invalidPassword
+        guard password.count >= 6 else {
+            throw AuthError.invalidPassword
         }
     }
 
@@ -55,10 +40,8 @@ class SignInViewModel: ObservableObject {
 
 extension String {
     func isValidEmail() -> Bool {
-
         let emailFormat = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
         let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailFormat)
         return emailPredicate.evaluate(with: self)
-
     }
 }

@@ -23,7 +23,22 @@ struct closeupApp: App {
                 }
             }
             .onOpenURL { url in
-                GIDSignIn.sharedInstance.handle(url)
+                // Handle both Google Sign In and Supabase email verification URLs
+                if url.scheme?.contains("com.googleusercontent.apps") ?? false {
+                    GIDSignIn.sharedInstance.handle(url)
+                } else if url.scheme == "closeup" {
+                    // Handle Supabase email verification
+                    Task {
+                        do {
+                            let sessionUser = try await AuthManager.shared.getCurrentSession()
+                            await MainActor.run {
+                                self.appUser = sessionUser
+                            }
+                        } catch {
+                            print("Error handling verification URL: \(error)")
+                        }
+                    }
+                }
             }
             .task {
                 await checkSession()
