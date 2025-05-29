@@ -21,7 +21,7 @@ struct SearchView: View {
                 if isLoading {
                     ProgressView("Searching...")
                         .padding()
-                        Spacer()
+                    Spacer()
                 } else if let error = searchError {
                     Text("Error: \(error)")
                         .foregroundColor(.red)
@@ -52,7 +52,7 @@ struct SearchView: View {
             }
             .navigationTitle("Search Users")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search by username or name")
-            .onChange(of: searchText) { newValue in
+            .onChange(of: searchText) { _, newValue in
                 // Invalidate existing timer
                 debounceTimer?.invalidate()
                 // Start a new timer

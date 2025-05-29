@@ -72,7 +72,7 @@ struct TextToolbar: View {
                 ) {
                     Image(systemName: "photo.on.rectangle.angled")
                 }
-                .onChange(of: selectedItems) { newValue in
+                .onChange(of: selectedItems) { _, newValue in
                     onPhotoSelected(newValue)
                     selectedItems = [] // Reset selection after handling
                 }

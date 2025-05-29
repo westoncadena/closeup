@@ -658,7 +658,7 @@ public struct CreatePromptView: View {
         let currentFont = textView.typingAttributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: isHeading ? headingFontSize : defaultFontSize)
         
         // Create font descriptor with current traits
-        var fontDescriptor = currentFont.fontDescriptor
+        let fontDescriptor = currentFont.fontDescriptor
         var traits = fontDescriptor.symbolicTraits
         
         // Clear existing bold and italic traits first
@@ -1090,9 +1090,7 @@ public struct CreatePromptView: View {
         attributedContent = textView.attributedText
         
         // Ensure formatting states are updated
-        if let attributes = textView.typingAttributes as? [NSAttributedString.Key: Any] {
-            updateFormattingStates(from: attributes)
-        }
+        updateFormattingStates(from: textView.typingAttributes)
         
         // Update typing attributes to maintain consistent formatting
         textView.typingAttributes[.paragraphStyle] = paragraphStyle

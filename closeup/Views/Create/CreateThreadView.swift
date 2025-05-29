@@ -461,55 +461,41 @@ public struct CreateThreadView: View {
     private let headingFontSize: CGFloat = 24
     private let defaultLineSpacing: CGFloat = 4
     
+    @MainActor
     private func insertImage(_ image: UIImage) {
         guard let textView = textView else { return }
         
-        // Run UI updates on main thread
-        DispatchQueue.main.async {
-            // Create default attributes with proper spacing
-            let attributes = self.createDefaultAttributes()
-            
-            // Create attachment for the image
-            let attachment = NSTextAttachment()
-            attachment.image = image
-            
-            // Scale image to fit width while maintaining aspect ratio
-            let maxWidth = textView.textContainer.size.width
-            let aspectRatio = image.size.width / image.size.height
-            let scaledHeight = maxWidth / aspectRatio
-            attachment.bounds = CGRect(x: 0, y: 0, width: maxWidth, height: min(scaledHeight, 200))
-            
-            // Create attributed string with the image
-            let imageString = NSAttributedString(attachment: attachment)
-            
-            // Always insert a newline before the image if we're not at the start of the text
-            let currentLocation = textView.selectedRange.location
-            if currentLocation > 0 {
-                // Check if we're already at the start of a line
-                let currentLine = (textView.text as NSString).substring(to: currentLocation)
-                let isAtLineStart = currentLine.hasSuffix("\n")
-                
-                if !isAtLineStart {
-                    // Insert newline with default attributes
-                    let newlineString = NSAttributedString(string: "\n", attributes: attributes)
-                    textView.textStorage.insert(newlineString, at: textView.selectedRange.location)
-                }
+        let attributes = self.createDefaultAttributes()
+        
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        
+        let maxWidth = textView.textContainer.size.width
+        let aspectRatio = image.size.width / image.size.height
+        let scaledHeight = maxWidth / aspectRatio
+        attachment.bounds = CGRect(x: 0, y: 0, width: maxWidth, height: min(scaledHeight, 200))
+        
+        let imageString = NSAttributedString(attachment: attachment)
+        
+        let currentLocation = textView.selectedRange.location
+        if currentLocation > 0 {
+            let currentLine = (textView.text as NSString).substring(to: currentLocation)
+            let isAtLineStart = currentLine.hasSuffix("\n")
+            if !isAtLineStart {
+                let newlineString = NSAttributedString(string: "\n", attributes: attributes)
+                textView.textStorage.insert(newlineString, at: textView.selectedRange.location)
             }
-            
-            // Insert the image
-            textView.textStorage.insert(imageString, at: textView.selectedRange.location)
-            
-            // Insert a newline after the image with default attributes
-            let newlineString = NSAttributedString(string: "\n", attributes: attributes)
-            textView.textStorage.insert(newlineString, at: textView.selectedRange.location + 1)
-            
-            // Ensure consistent formatting after image insertion
-            let fullRange = NSRange(location: 0, length: textView.textStorage.length)
-            textView.textStorage.addAttributes(attributes, range: fullRange)
-            
-            // Update the binding
-            self.attributedContent = textView.attributedText
         }
+        
+        textView.textStorage.insert(imageString, at: textView.selectedRange.location)
+        
+        let newlineString = NSAttributedString(string: "\n", attributes: attributes)
+        textView.textStorage.insert(newlineString, at: textView.selectedRange.location + 1)
+        
+        let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+        textView.textStorage.addAttributes(attributes, range: fullRange)
+        
+        self.attributedContent = textView.attributedText
     }
     
     private func createDefaultAttributes() -> [NSAttributedString.Key: Any] {
@@ -764,7 +750,9 @@ public struct CreateThreadView: View {
                     ThreadTextEditor(
                         attributedText: $attributedContent,
                         onImageInsertion: { image in
-                            insertImage(image)
+                            Task { @MainActor in
+                                self.insertImage(image)
+                            }
                         },
                         onTextViewCreated: { textView in
                             self.textView = textView
@@ -890,10 +878,9 @@ public struct CreateThreadView: View {
                     guard let data = try await item.loadTransferable(type: Data.self) else { continue }
                     guard let image = UIImage(data: data) else { continue }
                     
-                    // Process on main thread
-                    await MainActor.run {
-                        insertImage(image)
-                    }
+                    // Call the @MainActor func insertImage directly from the Task.
+                    // Swift handles actor hopping if this Task is on a background thread.
+                    self.insertImage(image) // No need for MainActor.run here
                 } catch {
                     print("Error handling photo: \(error)")
                 }
@@ -932,25 +919,23 @@ public struct CreateThreadView: View {
         }
     }
     
-    private func fetchUserThreads() {
+    private func fetchUserThreads() async {
         isLoadingThreads = true
         threadsError = nil
-        
-        Task {
-            do {
-                let userThreads = try await threadService.fetchThreads(forUserId: appUser.uid)
-                if Task.isCancelled { return }
-                
+
+        do {
+            let userThreads = try await threadService.fetchThreads(forUserId: appUser.uid)
+            if Task.isCancelled { return }
+
+            await MainActor.run {
+                self.threads = userThreads
+                self.isLoadingThreads = false
+            }
+        } catch {
+            if !Task.isCancelled {
                 await MainActor.run {
-                    self.threads = userThreads
+                    self.threadsError = error.localizedDescription
                     self.isLoadingThreads = false
-                }
-            } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.threadsError = error.localizedDescription
-                        self.isLoadingThreads = false
-                    }
                 }
             }
         }

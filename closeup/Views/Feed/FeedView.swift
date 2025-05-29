@@ -61,6 +61,9 @@ struct FeedView: View {
                         }
                         .padding(.horizontal)
                     }
+                    .refreshable {
+                        await loadFeedPosts()
+                    }
                 }
             }
             .navigationTitle("closeup")
@@ -77,7 +80,7 @@ struct FeedView: View {
                     await loadFeedPosts()
                 }
             }
-            .onChange(of: selectedFeedType) { _ in
+            .onChange(of: selectedFeedType) {_, _ in
                 Task {
                     await loadFeedPosts()
                 }

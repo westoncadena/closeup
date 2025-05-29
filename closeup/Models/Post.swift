@@ -12,6 +12,7 @@ public struct Post: Decodable, Identifiable {
     public let promptId: UUID?
     public let threadId: UUID?
     public let createdAt: Date // Maps from created_at
+    public let title: String? // Maps from title, which is nullable text
 
     public enum CodingKeys: String, CodingKey {
         case id = "post_id"
@@ -24,9 +25,10 @@ public struct Post: Decodable, Identifiable {
         case promptId = "prompt_id"
         case threadId = "thread_id"
         case createdAt = "created_at"
+        case title
     }
 
-    public init(id: UUID, userId: UUID?, content: String, mediaUrls: [String]?, mediaTypes: [String]?, audience: String, type: String, promptId: UUID?, threadId: UUID?, createdAt: Date) {
+    public init(id: UUID, userId: UUID?, content: String, mediaUrls: [String]?, mediaTypes: [String]?, audience: String, type: String, promptId: UUID?, threadId: UUID?, createdAt: Date, title: String? = nil) {
         self.id = id
         self.userId = userId
         self.content = content
@@ -37,5 +39,6 @@ public struct Post: Decodable, Identifiable {
         self.promptId = promptId
         self.threadId = threadId
         self.createdAt = createdAt
+        self.title = title
     }
 }

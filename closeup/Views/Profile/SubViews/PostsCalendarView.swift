@@ -5,78 +5,92 @@ import SwiftUI
 // Post model is available from closeup/Models/Post.swift
 
 struct PostsCalendarView: View {
+    // User for whom to display posts
+    let user: UserProfile
+
     @State private var currentDate: Date = Date() // Represents the month/year being viewed
     @State private var selectedDate: Date? = nil // For tapping on a day
 
-    // Mock Data
-    let mockUser = UserProfile(
-        id: UUID(),
-        username: "journaleer",
-        firstName: "Alex",
-        lastName: "Chen",
-        phoneNumber: nil,
-        profilePicture: nil,
-        lastLogin: Date(),
-        joinedAt: Date()
-    )
+    // Services
+    private let postService = PostService()
 
-    let mockPosts: [Post]
-    private var postDates: Set<Date> = []
+    // State for posts, loading, and error handling
+    @State private var posts: [Post] = []
+    @State private var isLoading: Bool = false
+    @State private var errorMessage: String? = nil
 
-    init() {
-        let calendar = Calendar.current
-        var posts: [Post] = []
+    // Computed property for dates that have posts
+    private var postDates: Set<Date> {
+        Set(posts.map { Calendar.current.startOfDay(for: $0.createdAt) })
+    }
 
-        // Create a specific date for May 20, 2025 for mocking, as in image
-        var components2025 = DateComponents(year: 2025, month: 5, day: 20)
-        let may20_2025 = calendar.date(from: components2025)!
-        
-        // Create a specific date for May 23, 2025 for mocking, as in image
-        components2025 = DateComponents(year: 2025, month: 5, day: 23)
-        let may23_2025 = calendar.date(from: components2025)!
-        
-        // Create a specific date for June 10, 2025
-        components2025 = DateComponents(year: 2025, month: 6, day: 10)
-        let june10_2025 = calendar.date(from: components2025)!
-
-        posts.append(Post(id: UUID(), userId: mockUser.id, content: "Journal entry for May 20, 2025", mediaUrls: ["https://example.com/image.jpg"], mediaTypes: ["image"], audience: "private", type: "journal", promptId: nil, threadId: nil, createdAt: may20_2025))
-        posts.append(Post(id: UUID(), userId: mockUser.id, content: "Thoughts on May 23rd", mediaUrls: nil, mediaTypes: nil, audience: "private", type: "journal", promptId: nil, threadId: nil, createdAt: may23_2025))
-        posts.append(Post(id: UUID(), userId: mockUser.id, content: "Another post on May 23rd!", mediaUrls: nil, mediaTypes: nil, audience: "private", type: "journal", promptId: nil, threadId: nil, createdAt: may23_2025))
-        posts.append(Post(id: UUID(), userId: mockUser.id, content: "June thoughts", mediaUrls: nil, mediaTypes: nil, audience: "private", type: "journal", promptId: nil, threadId: nil, createdAt: june10_2025))
-        
-        // Add some random posts for the current month and previous/next for testing
-        for i in 0..<5 {
-            posts.append(Post(id: UUID(), userId: mockUser.id, content: "Random post \(i)", mediaUrls: nil, mediaTypes: nil, audience: "private", type: "journal", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -Int.random(in: 0...30), to: Date())!))
-        }
-        
-        self.mockPosts = posts
-        self.postDates = Set(posts.map { calendar.startOfDay(for: $0.createdAt) })
-        
-        // Set initial currentDate to May 2025 to match the image
-        let initialDateComponents = DateComponents(year: 2025, month: 5, day: 1)
-        if let initialDate = calendar.date(from: initialDateComponents) {
-            _currentDate = State(initialValue: initialDate)
-        }
+    // Initializer to set a default starting month if needed (e.g., current month or a specific one for UI reasons)
+    // If you want it to always default to the current real-world month, you can remove this or adjust.
+    init(user: UserProfile) {
+        self.user = user
+        // Example: Set initial currentDate to May 2025 if that's a design choice, otherwise use Date()
+        // let initialDateComponents = DateComponents(year: 2025, month: 5, day: 1)
+        // if let initialDate = Calendar.current.date(from: initialDateComponents) {
+        //     _currentDate = State(initialValue: initialDate)
+        // } else {
+        //     _currentDate = State(initialValue: Date())
+        // }
+        // For now, let's default to the current month of the current year.
+         _currentDate = State(initialValue: Date())
     }
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                headerView
-                    .padding(.horizontal)
-                    .padding(.bottom, 10)
-                
-                weekdaysHeaderView
-                    .padding(.horizontal)
+        // Wrapped in a VStack to handle loading/error states before showing the calendar
+        VStack {
+            if isLoading {
+                ProgressView("Loading posts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let errorMessage = errorMessage {
+                VStack {
+                    Text("Error loading posts:")
+                        .foregroundColor(.red)
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Button("Retry") {
+                        Task {
+                            await loadUserPosts()
+                        }
+                    }
+                    .padding(.top, 5)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // The existing calendar UI structure
+                NavigationView { // Consider if NavigationView is needed here or if provided by parent (ProfileView)
+                    VStack(spacing: 0) {
+                        headerView
+                            .padding(.horizontal)
+                            .padding(.bottom, 10)
+                        
+                        weekdaysHeaderView
+                            .padding(.horizontal)
 
-                calendarGridView
-                    .padding(.horizontal)
-                    .padding(.bottom, 10)
-                
-                Spacer() // Pushes everything to the top
+                        calendarGridView
+                            .padding(.horizontal)
+                            .padding(.bottom, 10)
+                        
+                        // Optionally, display posts for the selectedDate here
+                        if let selectedDate = selectedDate {
+                            postsForSelectedDateView(date: selectedDate)
+                        } else {
+                            Spacer() // Pushes everything to the top if no date selected
+                        }
+                    }
+                    .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
+                    .navigationBarHidden(true)
+                }
             }
-            .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all)) // Standard light system background
-            .navigationBarHidden(true) // Hiding default nav bar to use custom header
+        }
+        .onAppear {
+            Task {
+                await loadUserPosts()
+            }
         }
         // .colorScheme(.dark) // Removed to default to light scheme
     }
@@ -137,26 +151,52 @@ struct PostsCalendarView: View {
         let days = generateDaysInMonth(for: currentDate)
         let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
-        return LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(days, id: \.self) { date in
-                DayView(date: date,
-                        currentMonth: currentDate,
-                        hasPost: postDates.contains(Calendar.current.startOfDay(for: date)),
-                        isSelected: selectedDate == date,
-                        action: {
-                            self.selectedDate = date
-                            let postsOnDay = mockPosts.filter { Calendar.current.isDate($0.createdAt, inSameDayAs: date) }
-                            print("Tapped on \(dateFormatter.string(from: date)). Posts: \(postsOnDay.count)")
-                            if !postsOnDay.isEmpty {
-                                print("Posts content: ")
-                                postsOnDay.forEach { print("- \($0.content)") }
-                            }
-                       }
-                )
+        // Added a ScrollView in case the content (postsForSelectedDateView) makes the view too tall
+        return ScrollView {
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(days, id: \.self) { date in
+                    DayView(date: date,
+                            currentMonth: currentDate,
+                            hasPost: postDates.contains(Calendar.current.startOfDay(for: date)),
+                            isSelected: selectedDate == date,
+                            action: {
+                                self.selectedDate = date // Select the date
+                                // Action to show posts for this day can be handled by postsForSelectedDateView
+                           }
+                    )
+                }
             }
         }
     }
 
+    // MARK: - Posts for Selected Date View (New)
+    @ViewBuilder
+    private func postsForSelectedDateView(date: Date) -> some View {
+        let postsOnDay = posts.filter { Calendar.current.isDate($0.createdAt, inSameDayAs: date) }
+        
+        if postsOnDay.isEmpty {
+            Text("No posts on \(date, formatter: dateFormatter)")
+                .foregroundColor(.gray)
+                .padding()
+        } else {
+            List {
+                Section(header: Text("Posts on \(date, formatter: dateFormatter)")) {
+                    ForEach(postsOnDay) { post in
+                        // Using a simple Text view for now, can be customized
+                        // Consider creating a PostRowView or similar if more complex display is needed
+                        VStack(alignment: .leading) {
+                            HTMLTextView(htmlContent: post.content) // Using HTMLTextView
+                            Text(post.createdAt, style: .time)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+            .frame(minHeight: 100, maxHeight: 300) // Adjust size as needed
+        }
+    }
+    
     // MARK: - Helper Functions
     private func generateDaysInMonth(for date: Date) -> [Date] {
         guard let monthInterval = Calendar.current.dateInterval(of: .month, for: date),
@@ -164,7 +204,7 @@ struct PostsCalendarView: View {
         else { return [] }
 
         var days: [Date] = []
-        let firstDayOfMonth = monthInterval.start
+        _ = monthInterval.start
         let lastDayOfMonth = monthInterval.end
         
         // Start from the beginning of the week containing the first day of the month
@@ -205,10 +245,28 @@ struct PostsCalendarView: View {
         return formatter
     }
     
-    private var dateFormatter: DateFormatter { // For printing tapped date
+    private var dateFormatter: DateFormatter { // For printing tapped date and section header
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         return formatter
+    }
+    
+    // Function to load posts for the current user
+    func loadUserPosts() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let fetchedPosts = try await postService.fetchPosts(forUserIds: [user.id])
+            // Sort by creation date if needed, though for calendar view, the date itself is key
+            self.posts = fetchedPosts.sorted(by: { $0.createdAt < $1.createdAt })
+            print("Successfully loaded \\(posts.count) posts for user: \\(user.username) for calendar view.")
+        } catch {
+            print("Error loading posts for user \\(user.username) in calendar: \\(error)")
+            self.errorMessage = error.localizedDescription
+            self.posts = [] // Clear posts on error
+        }
+        isLoading = false
     }
 }
 
@@ -273,5 +331,16 @@ struct DayView: View {
 
 
 #Preview {
-    PostsCalendarView()
+    // Create a mock UserProfile for the preview
+    let mockPreviewUser = UserProfile(
+        id: UUID(),
+        username: "calendar_preview",
+        firstName: "Cal",
+        lastName: "Endar",
+        phoneNumber: nil,
+        profilePicture: nil, // Provide a URL string if you have a placeholder image
+        lastLogin: Date(),
+        joinedAt: Date()
+    )
+    PostsCalendarView(user: mockPreviewUser)
 } 

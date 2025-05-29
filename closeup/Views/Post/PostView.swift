@@ -55,46 +55,66 @@ struct PostView: View {
                 // MARK: - Author Information
                 if isLoadingAuthor {
                     HStack {
-                        ProgressView()
+                        Image(systemName: "person.circle.fill") // Placeholder avatar
+                            .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
                         Text("Loading author...")
                             .font(.headline)
                             .foregroundColor(.gray)
                         Spacer()
                     }.padding(.horizontal)
                 } else if let author = authorProfile {
-                HStack {
+                    HStack {
                         if let profilePicUrlString = author.profilePicture, let url = URL(string: profilePicUrlString) {
-                            AsyncImage(url: url) {
-                                $0.resizable().aspectRatio(contentMode: .fill).frame(width: 40, height: 40).clipShape(Circle())
-                            } placeholder: {
-                                Image(systemName: "person.circle.fill").resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 40, height: 40)
+                                        .clipShape(Circle())
+                                case .failure(_):
+                                    Image(systemName: "person.circle.fill") // Fallback on failure
+                                        .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                                case .empty:
+                                    Image(systemName: "person.circle.fill") // Placeholder while loading
+                                        .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
+                                @unknown default:
+                                    EmptyView()
+                                }
                             }
                         } else {
-                            Image(systemName: "person.circle.fill")
+                            Image(systemName: "person.circle.fill") // Default placeholder
                                 .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
                         }
-                        Text(author.fullName)
-                        .font(.headline)
-                    Spacer()
+                        Text(author.username) // Changed from author.fullName to author.username
+                            .font(.headline)
+                        Spacer()
                         Text(post.type.capitalized)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.horizontal)
                 } else {
                     HStack {
                         Image(systemName: "person.circle.fill")
                             .resizable().scaledToFit().frame(width: 40, height: 40).clipShape(Circle()).foregroundColor(.gray)
-                        Text("Author not available")
+                        Text("Author Unknown") // Changed placeholder text
                             .font(.headline)
                             .foregroundColor(.gray)
                         Spacer()
                     }.padding(.horizontal)
                 }
 
+                // MARK: - Post Title
+                if let title = post.title, title.lowercased() != "untitled" {
+                    Text(title)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .padding(.horizontal)
+                }
+
                 // MARK: - Post Content
-                Text(post.content)
-                    .font(.body)
+                HTMLTextView(htmlContent: post.content)
                     .padding(.horizontal)
 
                 // MARK: - Media Carousel (Adapted for array of mediaUrls)
@@ -272,7 +292,7 @@ struct CommentsListView: View {
 
 #Preview {
     // Mock UserProfiles for the preview
-    let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
+    let eunsooProfile = UserProfile(id: UUID(), username: "eunsoo_y", firstName: "Eunsoo", lastName: "Yeo", phoneNumber: nil, profilePicture: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80", lastLogin: nil, joinedAt: Date()) // Added profile picture to mock data
     let westonProfile = UserProfile(id: UUID(), username: "weston_c", firstName: "Weston", lastName: "Cadena", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
     let mckenzieProfile = UserProfile(id: UUID(), username: "mckenzie_s", firstName: "Mckenzie", lastName: "Stanley", phoneNumber: nil, profilePicture: nil, lastLogin: nil, joinedAt: Date())
 
@@ -291,7 +311,8 @@ struct CommentsListView: View {
         type: "thoughts",
         promptId: nil,
         threadId: nil,
-        createdAt: Date()
+        createdAt: Date(),
+        title: "A Detailed Look at My Recent Project"
     )
     
     // PostView init now only takes post, initialMockLikes, initialMockComments
