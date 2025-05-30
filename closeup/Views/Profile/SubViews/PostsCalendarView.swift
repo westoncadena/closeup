@@ -99,24 +99,24 @@ struct PostsCalendarView: View {
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                VStack(alignment: .leading) {
-                    Text("Journal")
-                        .font(.largeTitle.bold())
-                        .foregroundColor(.primary) // Changed from .white
-                    Text(currentDate, formatter: yearFormatter)
-                        .font(.title3)
-                        .foregroundColor(.secondary) // Changed from Color.gray
-                }
-                Spacer()
-                // Placeholder for icons from the image (menu, search, etc.)
-                // For now, keeping it simple
-            }
-            
-            HStack {
+                Text("Journal")
+                    .font(.largeTitle.bold())
+                    .foregroundColor(.primary)
+                
+                Text(" ") // Separator
+                    .font(.largeTitle.bold())
+                    .foregroundColor(.primary)
+
                 Text(currentDate, formatter: monthFormatter)
-                    .font(.title2.bold())
-                    .foregroundColor(.primary) // Changed from .white
+                    .font(.title3)  
+                    .foregroundColor(.secondary)
+                
+                Text(currentDate, formatter: yearFormatter)
+                    .font(.title3) // Keep year slightly less prominent or match month
+                    .foregroundColor(.secondary)
+                
                 Spacer()
+                
                 Button(action: { changeMonth(by: -1) }) {
                     Image(systemName: "chevron.left")
                         .font(.title2)
@@ -129,7 +129,7 @@ struct PostsCalendarView: View {
                 }
             }
         }
-        .padding(.top, 20) // Space from top for status bar
+        .padding(.top) // Reduced top padding slightly, adjust as needed
     }
     
     // MARK: - Weekdays Header

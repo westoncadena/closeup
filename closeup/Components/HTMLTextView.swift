@@ -57,6 +57,7 @@ struct HTMLTextView: UIViewRepresentable {
             // Create paragraph style for alignment
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = textAlignment
+            paragraphStyle.lineBreakMode = .byWordWrapping
             
             // Apply paragraph style to the entire text
             let range = NSRange(location: 0, length: mutableAttrString.length)

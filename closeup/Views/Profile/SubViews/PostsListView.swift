@@ -16,59 +16,57 @@ struct PostsListView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
     
-    // Date Formatter
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter
-    }
-
     var body: some View {
-        // Removed NavigationView as it's usually part of the parent view in a profile context
-        List {
-            // Section for the posts
-            Section(header: Text("Posts").font(.title2).fontWeight(.bold)) {
-                if isLoading {
-                    ProgressView("Loading posts...")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                } else if let errorMessage = errorMessage {
-                    VStack(alignment: .center) {
-                        Text("Error loading posts:")
-                            .foregroundColor(.red)
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        Button("Retry") {
-                            Task {
-                                await loadUserPosts()
-                            }
+        VStack(spacing: 0) { // Use VStack to structure content similar to FeedView
+            if isLoading && posts.isEmpty { // Show loading only if posts are not yet loaded
+                ProgressView("Loading posts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let errorMessage = errorMessage {
+                VStack {
+                    Text("Error loading posts:")
+                        .foregroundColor(.red)
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Button("Retry") {
+                        Task {
+                            await loadUserPosts()
                         }
-                        .padding(.top, 5)
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
-                } else if posts.isEmpty {
-                    Text("No posts yet. Share your thoughts!")
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                } else {
-                    ForEach(posts) { post in // Changed mockUserPosts to posts
-                        // Pass the specific user object to PostListItemView
-                        PostListItemView(post: post, user: user, dateFormatter: dateFormatter)
-                            .padding(.vertical, 8)
+                    .padding(.top, 5)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if posts.isEmpty {
+                Text("No posts yet. Share your thoughts!")
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 15) {
+                        ForEach(posts) { post in
+                            NavigationLink(destination: PostView(post: post)) {
+                                PostCardView(post: post)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.top) // Add some top padding for the scroll content
+                }
+                .refreshable {
+                    await loadUserPosts()
                 }
             }
         }
-        .listStyle(PlainListStyle())
         .onAppear {
-            Task {
-                await loadUserPosts()
+            // Prevent multiple loads if already loading and posts are present (e.g., from refresh)
+            if posts.isEmpty { // Only load if posts are initially empty
+                Task {
+                    await loadUserPosts()
+                }
             }
         }
+        // .navigationTitle remains handled by the parent view (e.g., ProfileView)
     }
 
     // Function to load posts for the current user
@@ -85,98 +83,33 @@ struct PostsListView: View {
             // or that `fetchPosts(forUserIds: [UUID])` can be used with a single user ID.
             let userSpecificPosts = try await postService.fetchPosts(forUserIds: [user.id])
             self.posts = userSpecificPosts.sorted(by: { $0.createdAt > $1.createdAt }) // Sort by most recent
-            print("Successfully loaded \\(posts.count) posts for user: \\(user.username)")
+            print("Successfully loaded \(posts.count) posts for user: \(user.username)")
         } catch {
-            print("Error loading posts for user \\(user.username): \\(error)")
+            print("Error loading posts for user \(user.username): \(error)")
             self.errorMessage = error.localizedDescription
-            self.posts = [] // Clear posts on error
+            // self.posts = [] // Keep existing posts on error during refresh, or clear if desired
         }
         isLoading = false
     }
 }
 
-// MARK: - Post List Item View (Helper)
-// This view is inspired by elements from PostView but is more compact for a list.
-private struct PostListItemView: View {
-    let post: Post
-    let user: UserProfile // Pass the user for context, though in this list it's always the mockUser
-    let dateFormatter: DateFormatter
-
-    // Mock interaction data for display purposes
-    @State private var displayLikes: Int = Int.random(in: 0...200)
-    @State private var displayCommentsCount: Int = Int.random(in: 0...50)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Post Content
-            HTMLTextView(htmlContent: post.content)
-                .font(.body)
-                .lineLimit(5)
-
-            // Media Preview (First image if available)
-            if let mediaUrls = post.mediaUrls, !mediaUrls.isEmpty,
-               let firstUrlString = mediaUrls.first, let url = URL(string: firstUrlString),
-               let mediaTypes = post.mediaTypes, mediaTypes.count == mediaUrls.count,
-               let firstType = mediaTypes.first, firstType.lowercased().hasPrefix("image") {
-                
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView().frame(height: 150)
-                    case .success(let image):
-                        image.resizable().aspectRatio(contentMode: .fill)
-                             .frame(maxHeight: 200) // Limit height for list view
-                             .clipped().cornerRadius(8)
-                    case .failure:
-                        Image(systemName: "photo.fill")
-                            .resizable().aspectRatio(contentMode: .fit)
-                            .frame(height: 150).foregroundColor(.gray)
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-            }
-
-            // Date and Stats
-            HStack {
-                Text(dateFormatter.string(from: post.createdAt))
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "hand.thumbsup")
-                    Text("\(displayLikes)")
-                }
-                .font(.caption)
-                .foregroundColor(.gray)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "message")
-                    Text("\(displayCommentsCount)")
-                }
-                .font(.caption)
-                .foregroundColor(.gray)
-            }
-            .padding(.top, 4)
-        }
-        // Consider adding a NavigationLink here if rows should be tappable to a full PostView
-        // .background(NavigationLink("", destination: PostView(post: post)).opacity(0))
-    }
-}
+// PostListItemView has been removed as PostCardView is used directly.
 
 #Preview {
-    // Create a mock UserProfile for the preview
     let mockPreviewUser = UserProfile(
         id: UUID(),
         username: "preview_user",
         firstName: "Preview",
         lastName: "User",
         phoneNumber: nil,
-        profilePicture: nil,
+        profilePicture: "https://example.com/profile.jpg", // Added for PostCardView
         lastLogin: Date(),
         joinedAt: Date()
     )
-    PostsListView(user: mockPreviewUser)
+    // Wrap in NavigationView for previewing navigation if PostListView might be used in such a context
+    // or if PostCardView relies on it for some reason (though it shouldn't directly)
+    NavigationView {
+        PostsListView(user: mockPreviewUser)
+            .navigationTitle(mockPreviewUser.username) // Example title for preview context
+    }
 } 
