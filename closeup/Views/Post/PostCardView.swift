@@ -108,27 +108,30 @@ struct PostCardView: View {
         .cornerRadius(10)
         .shadow(radius: 3)
         .onAppear {
-            fetchAuthorProfile() // Renamed function
+            Task { // Explicitly create Task at the call site
+                await fetchAuthorProfile()
+            }
         }
     }
 
-    private func fetchAuthorProfile() { // Renamed and modified function
+    // Modify fetchAuthorProfile to be an async function
+    private func fetchAuthorProfile() async {
         guard let userId = post.userId else {
             // Potentially set a default state for authorProfile if needed
             // For now, it will remain nil and UI will show "Loading..." or default
             return
         }
 
-        Task {
-            do {
-                let fetchedProfile = try await userService.getUser(userId: userId)
-                await MainActor.run {
-                    self.authorProfile = fetchedProfile // Store the fetched profile
-                }
-            } catch {
-                print("Error fetching user profile for post \(post.id): \(error)")
-                // authorProfile remains nil, UI handles it
+        // No need for an inner Task { } block as the function is now async
+        do {
+            let fetchedProfile = try await userService.getUser(userId: userId)
+            // Ensure state update is on the main actor
+            await MainActor.run {
+                self.authorProfile = fetchedProfile // Store the fetched profile
             }
+        } catch {
+            print("Error fetching user profile for post \(post.id): \(error)")
+            // authorProfile remains nil, UI handles it
         }
     }
 }
