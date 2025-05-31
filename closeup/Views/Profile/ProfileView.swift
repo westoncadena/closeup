@@ -90,7 +90,8 @@ struct ProfileView: View {
                     Group {
                         switch selectedViewType {
                         case .grid:
-                            PostsBoardView() // Pass userPosts when ready: PostsBoardView(posts: userPosts)
+                            // profile.id is non-optional UUID, so no conditional binding needed.
+                            PostsBoardView(userId: profile.id) 
                         case .list:
                             PostsListView(user: profile) // Pass userPosts when ready: PostsListView(posts: userPosts)
                         case .calendar:

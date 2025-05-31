@@ -4,53 +4,19 @@ import SwiftUI
 // Post model is available from closeup/Models/Post.swift
 
 struct PostsBoardView: View {
-    // Mock Data
-    let mockUser = UserProfile(
-        id: UUID(),
-        username: "eunsoo_y",
-        firstName: "Eunsoo",
-        lastName: "Yeo",
-        phoneNumber: nil,
-        profilePicture: nil, // Add a URL string if you have one
-        lastLogin: Date(),
-        joinedAt: Date()
-    )
+    let userId: UUID // User ID to fetch posts for
 
-    var mockThoughtPosts: [Post]
-    var mockPromptPosts: [Post]
-    var mockThreadTopics: [Post]
+    @StateObject private var postService = PostService()
+    @State private var thoughtPosts: [Post] = []
+    @State private var promptPosts: [Post] = []
+    @State private var threadTopics: [Post] = []
 
-    init() {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Initialize mockThoughtPosts
-        mockThoughtPosts = [
-            Post(id: UUID(), userId: mockUser.id, content: "New App Development", mediaUrls: ["placeholder"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -1, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Vacation Planning", mediaUrls: ["placeholder"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -2, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Book Club Insights", mediaUrls: ["placeholder"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -3, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Gardening Project", mediaUrls: ["placeholder"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -4, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "Hidden Gem Cafe", mediaUrls: ["placeholder"], mediaTypes: ["image"], audience: "friends", type: "thoughts", promptId: nil, threadId: nil, createdAt: calendar.date(byAdding: .day, value: -5, to: now)!)
-        ]
+    @State private var isLoading: Bool = true
+    @State private var errorMessage: String? = nil
 
-        // Initialize mockPromptPosts
-        mockPromptPosts = [
-            Post(id: UUID(), userId: mockUser.id, content: "What's something small you're looking forward to?", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: .month, value: -1, to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "What made you smile today?", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: DateComponents(month: -1, day: -1), to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "A skill I want to learn this year is...", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: DateComponents(month: -1, day: -2), to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "My favorite way to unwind is...", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: DateComponents(month: -1, day: -3), to: now)!),
-            Post(id: UUID(), userId: mockUser.id, content: "One thing I'm grateful for today:", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "prompt", promptId: UUID(), threadId: nil, createdAt: calendar.date(byAdding: DateComponents(month: -1, day: -4), to: now)!)
-        ]
-
-        // Initialize mockThreadTopics
-        mockThreadTopics = [
-            Post(id: UUID(), userId: mockUser.id, content: "Reading", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now),
-            Post(id: UUID(), userId: mockUser.id, content: "Running", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now),
-            Post(id: UUID(), userId: mockUser.id, content: "Climbing", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now),
-            Post(id: UUID(), userId: mockUser.id, content: "Traveling", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now),
-            Post(id: UUID(), userId: mockUser.id, content: "Cooking", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now),
-            Post(id: UUID(), userId: mockUser.id, content: "Coding", mediaUrls: nil, mediaTypes: nil, audience: "friends", type: "thread_topic", promptId: nil, threadId: UUID(), createdAt: now)
-        ]
+    init(userId: UUID) {
+        self.userId = userId
+        // Initializers for mock data are removed
     }
     
     private var dateFormatter: DateFormatter {
@@ -61,20 +27,71 @@ struct PostsBoardView: View {
 
     var body: some View {
         ScrollView {
-            HStack(alignment: .top, spacing: 10) {
-                // Main content (Thoughts and Prompts)
-                VStack(alignment: .leading, spacing: 20) {
-                    thoughtsSection
-                    promptsSection
+            if isLoading {
+                ProgressView("Loading posts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 50)
+            } else if let errorMessage = errorMessage {
+                VStack {
+                    Text("Error: \(errorMessage)")
+                        .foregroundColor(.red)
+                    Button("Retry") {
+                        Task {
+                            await loadPostsData()
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else {
+                HStack(alignment: .top, spacing: 10) {
+                    // Main content (Thoughts and Prompts)
+                    VStack(alignment: .leading, spacing: 20) {
+                        if !thoughtPosts.isEmpty {
+                            thoughtsSection
+                        }
+                        if !promptPosts.isEmpty {
+                            promptsSection
+                        }
+                        if thoughtPosts.isEmpty && promptPosts.isEmpty && threadTopics.isEmpty {
+                            Text("No posts yet. Start sharing your thoughts!")
+                                .foregroundColor(.gray)
+                                .padding()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Side content (Threads)
-                threadsSection
-                    .frame(width: 120) // Fixed width for the side bar
+                    // Side content (Threads)
+                    if !threadTopics.isEmpty {
+                        threadsSection
+                            .frame(width: 120) // Fixed width for the side bar
+                    }
+                }
+                .padding()
             }
-            .padding()
         }
+        .onAppear {
+            Task {
+                await loadPostsData()
+            }
+        }
+    }
+
+    private func loadPostsData() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let allPosts = try await postService.fetchPosts(forUserId: userId)
+            // Filter posts by type using string literals matching PostService.PostType raw values
+            self.thoughtPosts = allPosts.filter { $0.type == "journal" } 
+            self.promptPosts = allPosts.filter { $0.type == "prompt" }
+            self.threadTopics = allPosts.filter { $0.type == "thread" }
+
+        } catch {
+            print("Error loading posts data in PostsBoardView: \(error)")
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 
     private var thoughtsSection: some View {
@@ -89,7 +106,7 @@ struct PostsBoardView: View {
             .padding(.bottom, 5)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
-                ForEach(mockThoughtPosts.prefix(4)) { post in
+                ForEach(thoughtPosts.prefix(4)) { post in
                     ThoughtItemView(post: post, dateFormatter: dateFormatter)
                 }
             }
@@ -108,7 +125,7 @@ struct PostsBoardView: View {
             .padding(.bottom, 5)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
-                ForEach(mockPromptPosts.prefix(4)) { post in
+                ForEach(promptPosts.prefix(4)) { post in
                     PromptItemView(post: post, dateFormatter: dateFormatter)
                 }
             }
@@ -120,7 +137,7 @@ struct PostsBoardView: View {
             // The design shows "Standard" and a dropdown "Board"
             // This could be a placeholder for that section header later
             // For now, just the list of threads
-            ForEach(mockThreadTopics) { topicPost in
+            ForEach(threadTopics) { topicPost in
                 ThreadItemView(post: topicPost)
             }
         }
@@ -136,7 +153,7 @@ private struct ThoughtItemView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(post.content) // Using content as title
+            Text(post.title ?? "") // Using content as title. Provide default for nil.
                 .font(.headline)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true) // Allow text to wrap
@@ -166,7 +183,7 @@ private struct PromptItemView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(post.content)
+            Text(post.title ?? "") // Provide default for nil.
                 .font(.subheadline)
                 .lineLimit(3) // Allow more lines for prompt text
                 .fixedSize(horizontal: false, vertical: true)
@@ -200,7 +217,9 @@ private struct ThreadItemView: View {
     }
 }
 
-
 #Preview {
-    PostsBoardView()
+    // PostsBoardView()
+    // Preview will need a UUID. For simplicity, we can use a random one.
+    // Or, ensure you have a mechanism to provide a specific one for testing if needed.
+    PostsBoardView(userId: UUID())
 } 
